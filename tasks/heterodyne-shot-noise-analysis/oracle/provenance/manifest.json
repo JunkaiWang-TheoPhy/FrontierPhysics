@@ -1,0 +1,57 @@
+{
+  "schema_version": "heterodyne-shot-noise-analysis-source-provenance/v1",
+  "visibility": "reviewer-only; not copied into the agent image",
+  "note": "Unified task combining the balanced-heterodyne shot-noise characterization (Part A) and the vacuum-vs-weak-coherent-state discrimination (Part B). The two parts share the same apparatus but use different truncations of the same acquisitions, so their frozen inputs live in separate subtrees: /root/input/shot_noise and /root/input/discrimination.",
+  "origin": {
+    "lab_record": "Atom_state_readout_analysis (author's balanced-heterodyne single-atom readout apparatus)",
+    "notebook": "Data_analysis_1_9_500kHz.ipynb (Part B); shot-noise LO sweep and spectrum records (Part A)",
+    "author": "Wenjun Ke",
+    "description": "Part A: vacuum (LO-only) balanced-detector shot-noise measurements over increasing LO power, plus a spectrum-analyzer noise-floor trace and its scope companion. Part B: balanced-heterodyne discrimination of a vacuum state and a very weak coherent state (single vac_2 / sig_2 acquisition pair)."
+  },
+  "instruments": {
+    "balanced_detector": "Thorlabs PDB210A",
+    "oscilloscope": "RIGOL DS1104 (sampling rate 50 MHz)",
+    "spectrum_analyzer": "Anritsu MS2720T (RBW 300 Hz, 50 ohm input)"
+  },
+  "measurement_parameters": {
+    "wavelength_nm": 795,
+    "beat_frequency_hz": 500000,
+    "sampling_rate_hz": 50000000,
+    "rf_conversion_gain_v_per_w": 257988.0,
+    "monitor_calibration_uw_per_summed_volt": 100.0,
+    "transimpedance_v_per_a": 175000.0,
+    "responsivity_a_per_w": 0.57
+  },
+  "ground_truth_notes": {
+    "signal_power_pw": 1.42,
+    "method": "Part B beat amplitude taken from the phase-corrected IQ-demodulation displacement (Vpp = 4*|centroid|/T) with the true RF gain 257.988e3 V/W. This is self-consistent: the photon number from power (~11.3) matches the gain-independent photon number from displacement/std (~11.0), the measured/theoretical std ratio is ~1.02, and the measured/theoretical error-rate ratio is ~0.99 (state is ~98% shot-noise-limited).",
+    "naive_pitfall": "A windowed-FFT beat amplitude loses coherent power to the phase drift over the capture; using it with the true gain underestimates the amplitude, and using it with a compensating smaller gain (215.94e3) over-corrects to ~1.9 pW, which is not shot-noise-consistent. The 2*sqrt(2)*RMS amplitude is inflated by the shot noise itself. The clean displacement-based amplitude avoids both."
+  },
+  "derived_inputs": {
+    "shot_noise/heterodyne_data/vac_{1..9}_CHAN{1,2,3}.csv": {
+      "source": "1_12_shot_noise/500kHz_measurement/vac_{1..9}_CHAN{1,2,3}.csv",
+      "transform": "Kept the header and the first 500000 samples (10 ms at 50 MHz) of each channel; values otherwise unchanged.",
+      "channels": {
+        "CHAN1": "PDB210A RF (balanced) output",
+        "CHAN2": "LO monitor + output",
+        "CHAN3": "LO monitor - output"
+      }
+    },
+    "shot_noise/spectrum/vac_100uW_CHAN{1,2,3}.csv": {
+      "source": "1_3_shot_noise/vac_100uW_CHAN{1,2,3}.csv",
+      "transform": "Kept the header and the first 500000 samples (10 ms at 50 MHz); the oscilloscope companion of the spectrum trace, used to extract LO power."
+    },
+    "shot_noise/spectrum/vac_100uW_spectrum.csv": {
+      "source": "1_3_shot_noise/vac_100uW_spectrum.csv",
+      "transform": "Verbatim Anritsu spectrum-analyzer export (dBm, RBW 300 Hz)."
+    },
+    "discrimination/heterodyne_data/{vac,sig}_2_CHAN1.csv": {
+      "source": "1_9_shot_noise/500kHz_measurement/{vac,sig}_2_CHAN1.csv",
+      "transform": "Header + first 2400000 samples (48 ms at 50 MHz) of the RF (balanced) output; values otherwise unchanged."
+    },
+    "discrimination/heterodyne_data/{vac,sig}_2_CHAN{2,3}.csv": {
+      "source": "1_9_shot_noise/500kHz_measurement/{vac,sig}_2_CHAN{2,3}.csv",
+      "transform": "Header + first 100000 samples (exactly 1000 beat periods) of the two LO monitor outputs; only their mean (LO power) is used."
+    }
+  }
+}

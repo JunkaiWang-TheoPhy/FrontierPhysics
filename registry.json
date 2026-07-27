@@ -8,6 +8,11 @@
     "control_condition": "with-skill",
     "tasks": [
       {
+        "name": "heterodyne-shot-noise-analysis",
+        "path": "tasks/heterodyne-shot-noise-analysis",
+        "digest": "sha256:497468dab7ed79dca0f5b5768eb5b854b0fdd420247952f49c741f63d6ae27f2"
+      },
+      {
         "name": "surface-ion-trap-shuttling",
         "path": "tasks/surface-ion-trap-shuttling",
         "digest": "sha256:2f9094a7428ace292fe5229da4be6466785bc7f565956ecbea60fe8ebd314cc2"
