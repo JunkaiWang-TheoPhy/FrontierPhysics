@@ -6,6 +6,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 EXPECTED_TASKS = (
     "heterodyne-shot-noise-analysis",
+    "magnon-dispersion-bec",
     "surface-ion-trap-shuttling",
     "trapped-ions-heating-rate",
 )

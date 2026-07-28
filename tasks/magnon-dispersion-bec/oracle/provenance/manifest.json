@@ -1,0 +1,46 @@
+{
+  "schema_version": "frontierphysics-provenance-v1",
+  "task_id": "magnon-dispersion-bec",
+  "visibility": "reviewer_only",
+  "one_line": "YIG dipole-exchange spin-wave dispersion parameter extraction and pumped magnon-gas thermodynamics with Bose-Einstein condensation threshold.",
+  "source_model": {
+    "part_a": "In-plane magnetized YIG-film dipole-exchange spin-wave dispersion, using the measured ferromagnetic resonance and spectral minimum to infer 4piM, exchange stiffness, and k_min, then forward-predicting the surface (theta=pi/2) branch and a second film's spectral minimum from the same material parameters.",
+    "part_b": "Three-dimensional exchange-dominated magnon gas at room temperature with conserved magnon number and total energy under parametric pumping, across three coupled configurations: a sub-critical pumped gas (chemical potential, temperature, BEC threshold, T^3/2 density scaling), a supercritically pumped gas that condenses (condensate fraction on the mu=eps_min branch), and a configuration whose exchange stiffness is the value extracted in Part A."
+  },
+  "primary_references": [
+    {
+      "citation": "D. D. Stancil and A. Prabhakar, Spin Waves: Theory and Applications, Springer, 2009",
+      "used_for": "Magnetostatic and exchange spin-wave dispersion conventions."
+    },
+    {
+      "citation": "A. V. Chumak et al., Magnon spintronics, Nature Physics 11, 453-461 (2015)",
+      "doi": "10.1038/nphys3347",
+      "used_for": "YIG magnonics context and material scale."
+    },
+    {
+      "citation": "S. O. Demokritov et al., Bose-Einstein condensation of quasi-equilibrium magnons at room temperature under pumping, Nature 443, 430-433 (2006)",
+      "doi": "10.1038/nature05117",
+      "used_for": "Pumped quasi-equilibrium magnon gas and BEC threshold context."
+    },
+    {
+      "citation": "A. A. Serga, A. V. Chumak, and B. Hillebrands, YIG magnonics, Journal of Physics D 43, 264002 (2010)",
+      "doi": "10.1088/0022-3727/43/26/264002",
+      "used_for": "YIG spin-wave and magnon-gas phenomenology."
+    }
+  ],
+  "input_data": {
+    "type": "self-contained numerical problem statement",
+    "agent_visible": "All numerical inputs are in task.md.",
+    "external_files": "None"
+  },
+  "oracle_method": {
+    "route": "Solve the in-plane film dispersion equations for 4piM, D, and k_min (and forward-evaluate the surface branch and second-film minimum), then evaluate the exchange-dominated magnon-gas number and energy integrals and solve number/energy conservation for the pumped temperature and chemical potential (sub-critical branch), the mu=eps_min condensed branch and its condensate fraction (supercritical system), and an interlocked configuration that consumes the Part-A exchange stiffness.",
+    "implementation": "oracle/magnon_physics.py and oracle/solve.py",
+    "derives_outputs": true
+  },
+  "verifier_method": {
+    "route": "Independently imports verifier/magnon_physics.py to recompute the same physical quantities from task constants and compares with tolerance bands.",
+    "hidden_answer_in_environment": false
+  },
+  "license": "Task-authored code and self-contained numerical inputs are contributed under the repository license."
+}
