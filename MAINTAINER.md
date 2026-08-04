@@ -77,9 +77,11 @@ For every agent run:
 | Major changes | Broken control run, ambiguous prompt, brittle verifier, missing provenance, or unsupported physics |
 | Reject | Contrived task, leaked answers, invalid oracle, or irreproducible grading |
 
-On merge, record contribution credit from the PR's Credit table: 4 points to the
-task author and 1 point to each reviewer who signed off. Reviewer points are
-earned only when the reviewed task merges, so they are awarded at the same time.
+On merge, record contribution credit from the PR's Credit table: 6 points to the
+task author, 1 point to each reviewer who signed off, and 2 points to the
+referrer if this is the author's first merged task and the table names one.
+Reviewer and referral points are earned only when the task merges, so they are
+awarded at the same time.
 See the [authorship policy](CONTRIBUTING.md#authorship-policy) for how points
 convert to co-authorship.
 

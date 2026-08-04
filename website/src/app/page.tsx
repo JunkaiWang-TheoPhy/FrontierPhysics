@@ -1,6 +1,6 @@
 import { HeroBackground } from "@/components/HeroBackground";
 import { Button } from "@/components/ui/button";
-import { credit, site, tasksForAuthorship } from "@/lib/site";
+import { credit, site, stages } from "@/lib/site";
 import { getTasks } from "@/lib/tasks";
 import { ArrowRight, ArrowUpRight, Award } from "lucide-react";
 import Link from "next/link";
@@ -72,19 +72,26 @@ export default function Home() {
               <strong className="font-semibold text-foreground">
                 {credit.task} points
               </strong>
-              , a review earns{" "}
+              , a referral{" "}
+              <strong className="font-semibold text-foreground">
+                {credit.referral}
+              </strong>
+              , a review{" "}
               <strong className="font-semibold text-foreground">
                 {credit.review}
               </strong>
-              . At{" "}
-              <strong className="font-semibold text-foreground">
-                {credit.authorship}
-              </strong>{" "}
-              you are a{" "}
-              <strong className="font-semibold text-foreground">
-                co-author
-              </strong>
               .
+              <span className="block">
+                At{" "}
+                <strong className="font-semibold text-foreground">
+                  {credit.authorship} points
+                </strong>{" "}
+                you are a{" "}
+                <strong className="font-semibold text-foreground">
+                  co-author
+                </strong>
+                .
+              </span>
             </p>
           </div>
         </section>
@@ -97,31 +104,33 @@ export default function Home() {
                   What a task looks like
                 </h2>
                 <p className="text-muted-foreground leading-relaxed">
-                  A task is a native BenchFlow <code className="font-mono text-sm">task.md</code>{" "}
-                  package. The prompt describes an outcome and never names a
-                  skill. The oracle has to pass with reward 1.0 before any agent
-                  is run.
+                  A native BenchFlow{" "}
+                  <code className="font-mono text-sm">task.md</code> package. The
+                  prompt describes an outcome and never names any skill. The
+                  oracle must pass with reward 1.0 before any agent runs, and
+                  every attempt is graded in two stages.
                 </p>
+                <ol className="space-y-4 pt-1">
+                  {stages.map((stage) => (
+                    <li key={stage.step} className="flex gap-4">
+                      <span className="font-mono text-sm text-muted-foreground pt-0.5 shrink-0">
+                        {stage.step}
+                      </span>
+                      <div className="space-y-1">
+                        <h3 className="font-semibold tracking-tight text-sm">
+                          {stage.title}
+                        </h3>
+                        <p className="text-sm text-muted-foreground leading-relaxed">
+                          {stage.body}
+                        </p>
+                      </div>
+                    </li>
+                  ))}
+                </ol>
                 <p className="text-muted-foreground leading-relaxed">
-                  Prompt bodies and oracle logic are human-authored — that rule
-                  is what keeps the benchmark grounded in real research rather
-                  than in generated exercises.
+                  Prompts, oracle logic, and the planning rubric are
+                  human-authored.
                 </p>
-                <Button
-                  asChild
-                  variant="secondary"
-                  size="sm"
-                  className="border border-border"
-                >
-                  <a
-                    href={site.contributing}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    Read the contributor guide
-                    <ArrowUpRight className="h-4 w-4" aria-hidden="true" />
-                  </a>
-                </Button>
               </div>
 
               <pre className="rounded-2xl border border-border bg-card p-6 overflow-x-auto text-xs sm:text-sm font-mono leading-relaxed text-muted-foreground">
@@ -133,12 +142,10 @@ export default function Home() {
           <section id="tasks" className="scroll-mt-28">
             <div className="mb-10 space-y-3">
               <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">
-                Tasks in the repository
+                Example tasks
               </h2>
               <p className="text-muted-foreground max-w-2xl leading-relaxed">
-                The public set is small and early — these are the tasks merged
-                so far. There is no leaderboard yet; results are published once
-                the task set is large enough to mean something.
+                Each one comes from research a contributor had already done.
               </p>
             </div>
 
@@ -188,71 +195,6 @@ export default function Home() {
             )}
           </section>
 
-          <section className="rounded-2xl border border-border bg-card p-8 sm:p-10 text-center space-y-5">
-            <span className="inline-flex items-center gap-2 rounded-full border border-chart-2/50 bg-chart-2/10 px-4 py-1.5 text-xs font-medium">
-              <Award className="h-3.5 w-3.5 text-chart-2" aria-hidden="true" />
-              What you get
-            </span>
-            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">
-              Earn {credit.authorship} points, become a co-author
-            </h2>
-            <p className="text-muted-foreground max-w-xl mx-auto leading-relaxed">
-              Credit is tracked in points, and {credit.authorship} of them earns
-              co-authorship on the FrontierPhysics paper and the released
-              dataset. Reviewing counts too, so you can get there by authoring{" "}
-              {tasksForAuthorship} tasks, by reviewing, or by any mix that adds
-              up.
-            </p>
-
-            <dl className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-2xl mx-auto pt-2 text-left">
-              {[
-                {
-                  points: `+${credit.task}`,
-                  label: "A task you authored is merged",
-                },
-                {
-                  points: `+${credit.review}`,
-                  label: "A task you reviewed is merged",
-                },
-                {
-                  points: credit.authorship,
-                  label: "Co-authorship on the paper and dataset",
-                },
-              ].map((row) => (
-                <div
-                  key={row.label}
-                  className="rounded-xl border border-border bg-background p-4"
-                >
-                  <dt className="text-2xl font-bold tracking-tight tabular-nums">
-                    {row.points}
-                  </dt>
-                  <dd className="mt-1 text-sm text-muted-foreground leading-relaxed">
-                    {row.label}
-                  </dd>
-                </div>
-              ))}
-            </dl>
-
-            <p className="text-muted-foreground max-w-xl mx-auto leading-relaxed">
-              No AI background required — if you can explain your analysis to a
-              new graduate student, you can author a task, and a maintainer will
-              walk you through the rest.
-            </p>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-1">
-              <Button asChild>
-                <Link href="/contribute">Start your first task</Link>
-              </Button>
-              <Button
-                asChild
-                variant="secondary"
-                className="border border-border"
-              >
-                <a href={site.discord} target="_blank" rel="noopener noreferrer">
-                  Ask on Discord
-                </a>
-              </Button>
-            </div>
-          </section>
         </div>
       </main>
     </div>

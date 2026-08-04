@@ -1,33 +1,28 @@
+/**
+ * The BenchFlow ruler measuring inside a thin orbit, with one electron on that
+ * orbit — the benchmark and the physics in one mark.
+ *
+ * The orbit is a cut arc rather than a full circle with a disc painted over the
+ * gap, so the mark carries no background colour of its own: it composes over
+ * anything and takes `currentColor` from whatever it sits in.
+ */
 export function FrontierPhysicsLogo(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg viewBox="0 0 32 32" fill="none" aria-hidden="true" {...props}>
-      <circle cx="16" cy="16" r="3.2" fill="currentColor" />
-      <ellipse
-        cx="16"
-        cy="16"
-        rx="14"
-        ry="6"
+    <svg viewBox="0 0 100 100" fill="none" aria-hidden="true" {...props}>
+      <path
+        d="M22.059 30.628A34 34 0 1 0 27.813 24.237"
         stroke="currentColor"
-        strokeWidth="1.8"
+        strokeWidth="2.4"
       />
-      <ellipse
-        cx="16"
-        cy="16"
-        rx="14"
-        ry="6"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        transform="rotate(60 16 16)"
-      />
-      <ellipse
-        cx="16"
-        cy="16"
-        rx="14"
-        ry="6"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        transform="rotate(120 16 16)"
-      />
+      <g transform="translate(28.926 28.926) scale(0.082)">
+        <path
+          fillRule="evenodd"
+          clipRule="evenodd"
+          d="M445.422 66.4597L511.882 0L389.022 293.965L295.129 387.859L0 511.882L69.3042 442.577L81.0101 454.283L89.0554 446.238L77.3493 434.532L130.65 381.232L162.469 413.051L170.514 405.006L138.695 373.187L191.995 319.887L203.701 331.593L211.746 323.547L200.04 311.841L253.34 258.541L285.16 290.36L293.205 282.315L261.386 250.496L314.686 197.196L326.392 208.902L334.437 200.856L322.731 189.15L376.031 135.85L407.851 167.669L415.896 159.624L384.077 127.805L437.377 74.5049L449.083 86.2108L457.128 78.1656L445.422 66.4597ZM399.127 389.865V299.369L513.197 26.4333V503.935L399.127 389.865ZM391.061 397.931L505.132 512.001H29.1594L300.605 397.931H391.061Z"
+          fill="currentColor"
+        />
+      </g>
+      <circle cx="24.733" cy="27.25" r="6" fill="currentColor" />
     </svg>
   );
 }

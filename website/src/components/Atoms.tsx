@@ -4,58 +4,130 @@ import { useEffect, useRef } from "react";
 import "./Atoms.css";
 
 interface AtomsProps {
-  direction?: "right" | "left" | "up" | "down" | "diagonal";
-  speed?: number;
-  /** Stroke colour of the orbits and the nucleus. */
+  /** Stroke colour of the atoms and the bonds between them. */
   atomColor?: string;
-  /** Spacing of the lattice the atoms sit on. */
-  cellSize?: number;
+  /** Seconds for one full revolution. */
+  rotationPeriod?: number;
+  /** Sphere radius as a fraction of the smaller viewport dimension. */
+  radiusRatio?: number;
   className?: string;
 }
 
 /*
- * Spacetime curvature under the cursor.
+ * The atoms sit on a geodesic sphere and are bonded to their neighbours, so the
+ * field reads as one large lattice turning in space rather than a flat drift.
  *
- * The pointer acts as a mass sitting on the lattice: nearby atoms fall inward
- * toward it and shrink as they recede into the well, so the even spacing bunches
- * up near the centre and relaxes back to flat further out — the standard
- * rubber-sheet picture of a mass curving spacetime.
+ * Vertices come from an icosahedron subdivided three times and pushed out to
+ * the sphere: 642 evenly spaced points, every one equivalent to every other, which
+ * is what keeps the mesh regular from any angle. Edges are the subdivided
+ * triangle sides, deduplicated.
  *
- * The deformation is static rather than propagating. It tracks the pointer, and
- * eases in and out as the pointer enters and leaves, instead of radiating.
+ * Depth is carried by perspective scale and opacity alone — atoms at the back
+ * are smaller and fainter — so the sphere reads as solid without any shading.
+ *
+ * The pointer curves the lattice: atoms near it fall inward and shrink as they
+ * recede into the well, and because the bonds are drawn from the same displaced
+ * positions the whole mesh dimples rather than just the dots — the rubber-sheet
+ * picture of a mass curving spacetime, now wrapped onto the sphere.
  */
+const SUBDIVISIONS = 3; // 3 → 642 vertices, 1920 bonds
+const FOCAL = 2.6; // perspective strength, in sphere radii
+const NEAR_ALPHA = 1;
+const FAR_ALPHA = 0.25;
+const TILT = -0.42; // radians; a slight lean so the poles are never edge-on
+
 const WELL_RADIUS = 200; // px — scale over which curvature falls off
 const WELL_PULL = 28; // px — deepest inward displacement
 const WELL_SHRINK = 0.24; // how much an atom shrinks at the bottom of the well
 const FOLLOW_EASE = 0.16; // how quickly the well tracks the pointer
 const STRENGTH_EASE = 0.08; // how quickly it eases in and out
 
+type Vec3 = [number, number, number];
+
+/** An icosahedron subdivided `depth` times and normalised onto the unit sphere. */
+function icosphere(depth: number): { vertices: Vec3[]; edges: [number, number][] } {
+  const t = (1 + Math.sqrt(5)) / 2;
+  const vertices: Vec3[] = [
+    [-1, t, 0], [1, t, 0], [-1, -t, 0], [1, -t, 0],
+    [0, -1, t], [0, 1, t], [0, -1, -t], [0, 1, -t],
+    [t, 0, -1], [t, 0, 1], [-t, 0, -1], [-t, 0, 1],
+  ];
+  let faces: [number, number, number][] = [
+    [0, 11, 5], [0, 5, 1], [0, 1, 7], [0, 7, 10], [0, 10, 11],
+    [1, 5, 9], [5, 11, 4], [11, 10, 2], [10, 7, 6], [7, 1, 8],
+    [3, 9, 4], [3, 4, 2], [3, 2, 6], [3, 6, 8], [3, 8, 9],
+    [4, 9, 5], [2, 4, 11], [6, 2, 10], [8, 6, 7], [9, 8, 1],
+  ];
+
+  const midpoints = new Map<string, number>();
+  const midpoint = (a: number, b: number): number => {
+    const key = a < b ? `${a}_${b}` : `${b}_${a}`;
+    const cached = midpoints.get(key);
+    if (cached !== undefined) return cached;
+    const [ax, ay, az] = vertices[a];
+    const [bx, by, bz] = vertices[b];
+    vertices.push([(ax + bx) / 2, (ay + by) / 2, (az + bz) / 2]);
+    const index = vertices.length - 1;
+    midpoints.set(key, index);
+    return index;
+  };
+
+  for (let i = 0; i < depth; i++) {
+    const next: [number, number, number][] = [];
+    for (const [a, b, c] of faces) {
+      const ab = midpoint(a, b);
+      const bc = midpoint(b, c);
+      const ca = midpoint(c, a);
+      next.push([a, ab, ca], [b, bc, ab], [c, ca, bc], [ab, bc, ca]);
+    }
+    faces = next;
+  }
+
+  // Push every vertex onto the unit sphere.
+  const unit: Vec3[] = vertices.map(([x, y, z]) => {
+    const length = Math.hypot(x, y, z) || 1;
+    return [x / length, y / length, z / length];
+  });
+
+  const seen = new Set<string>();
+  const edges: [number, number][] = [];
+  for (const [a, b, c] of faces) {
+    for (const [p, q] of [[a, b], [b, c], [c, a]] as [number, number][]) {
+      const key = p < q ? `${p}_${q}` : `${q}_${p}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      edges.push([p, q]);
+    }
+  }
+
+  return { vertices: unit, edges };
+}
+
 /**
- * Renders one atom — a nucleus inside three orbital ellipses, the same glyph as
- * the FrontierPhysics mark — into an offscreen canvas. The animation loop blits
- * this sprite per cell instead of re-stroking three ellipses for every atom on
- * every frame, which keeps a dense full-screen field cheap.
+ * Renders one atom — a nucleus inside three orbital ellipses — into an
+ * offscreen canvas, so the loop blits a sprite per vertex instead of
+ * re-stroking three ellipses every frame.
  */
 function createAtomSprite(
   color: string,
-  cellSize: number,
+  size: number,
   dpr: number,
 ): HTMLCanvasElement {
   const sprite = document.createElement("canvas");
-  sprite.width = cellSize * dpr;
-  sprite.height = cellSize * dpr;
+  sprite.width = size * dpr;
+  sprite.height = size * dpr;
 
   const ctx = sprite.getContext("2d");
   if (!ctx) return sprite;
 
   ctx.scale(dpr, dpr);
-  ctx.translate(cellSize / 2, cellSize / 2);
+  ctx.translate(size / 2, size / 2);
   ctx.strokeStyle = color;
   ctx.fillStyle = color;
   ctx.lineWidth = 1;
 
-  const rx = cellSize * 0.3;
-  const ry = cellSize * 0.125;
+  const rx = size * 0.3;
+  const ry = size * 0.125;
 
   for (const rotation of [0, Math.PI / 3, (2 * Math.PI) / 3]) {
     ctx.beginPath();
@@ -64,32 +136,22 @@ function createAtomSprite(
   }
 
   ctx.beginPath();
-  ctx.arc(0, 0, cellSize * 0.048, 0, Math.PI * 2);
+  ctx.arc(0, 0, size * 0.048, 0, Math.PI * 2);
   ctx.fill();
 
   return sprite;
 }
 
 const Atoms = ({
-  direction = "diagonal",
-  speed = 0.15,
   atomColor = "#999",
-  cellSize = 56,
+  rotationPeriod = 90,
+  radiusRatio = 0.94,
   className = "",
 }: AtomsProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const requestRef = useRef<number | null>(null);
-  const gridOffset = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
-  const pointerRef = useRef<{ x: number; y: number; inside: boolean }>({
-    x: 0,
-    y: 0,
-    inside: false,
-  });
-  const wellRef = useRef<{ x: number; y: number; strength: number }>({
-    x: 0,
-    y: 0,
-    strength: 0,
-  });
+  const pointerRef = useRef({ x: 0, y: 0, inside: false });
+  const wellRef = useRef({ x: 0, y: 0, strength: 0 });
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -100,7 +162,9 @@ const Atoms = ({
     // Cap the ratio at 2 — beyond that the extra pixels cost more than the
     // sharpness is worth for a background this faint.
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    const sprite = createAtomSprite(atomColor, cellSize, dpr);
+    const { vertices, edges } = icosphere(SUBDIVISIONS);
+    const atomSize = 14;
+    const sprite = createAtomSprite(atomColor, atomSize, dpr);
     const reduceMotion = window.matchMedia(
       "(prefers-reduced-motion: reduce)",
     ).matches;
@@ -120,84 +184,81 @@ const Atoms = ({
     window.addEventListener("resize", resizeCanvas);
     resizeCanvas();
 
-    const drawField = () => {
+    const draw = (angle: number) => {
       ctx.clearRect(0, 0, width, height);
 
-      const startX = Math.floor(gridOffset.current.x / cellSize) * cellSize;
-      const startY = Math.floor(gridOffset.current.y / cellSize) * cellSize;
+      const radius = Math.min(width, height) * radiusRatio;
+      const cx = width / 2;
+      const cy = height / 2;
+      const sinY = Math.sin(angle);
+      const cosY = Math.cos(angle);
+      const sinX = Math.sin(TILT);
+      const cosX = Math.cos(TILT);
+
       const well = wellRef.current;
       const curved = well.strength > 0.001;
 
-      for (let x = startX; x < width + cellSize; x += cellSize) {
-        for (let y = startY; y < height + cellSize; y += cellSize) {
-          const cellX = x - (gridOffset.current.x % cellSize);
-          const cellY = y - (gridOffset.current.y % cellSize);
+      // Project every vertex once per frame, then reuse for bonds and atoms.
+      const points = vertices.map(([x, y, z]) => {
+        // Spin about the vertical axis, then lean the whole sphere forward.
+        const rx = x * cosY + z * sinY;
+        const rz = -x * sinY + z * cosY;
+        const ry = y * cosX - rz * sinX;
+        const rzz = y * sinX + rz * cosX;
 
-          if (!curved) {
-            ctx.drawImage(sprite, cellX, cellY, cellSize, cellSize);
-            continue;
-          }
+        const scale = FOCAL / (FOCAL + rzz);
+        // rzz spans [-1, 1]; map to a front-to-back opacity ramp.
+        const depth = (rzz + 1) / 2;
+        let px = cx + rx * radius * scale;
+        let py = cy + ry * radius * scale;
+        let sizeScale = scale;
 
-          const centreX = cellX + cellSize / 2;
-          const centreY = cellY + cellSize / 2;
-          const dx = centreX - well.x;
-          const dy = centreY - well.y;
+        if (curved) {
+          const dx = px - well.x;
+          const dy = py - well.y;
           const distance = Math.hypot(dx, dy);
-
           // 1 at the centre of the well, decaying smoothly to 0 far away.
-          const depth =
-            (WELL_RADIUS * WELL_RADIUS) /
-            (distance * distance + WELL_RADIUS * WELL_RADIUS);
-          const falling = depth * well.strength;
-
+          const falling =
+            ((WELL_RADIUS * WELL_RADIUS) /
+              (distance * distance + WELL_RADIUS * WELL_RADIUS)) *
+            well.strength;
           // Clamped so an atom is never dragged past the centre and inverted.
           const pull = Math.min(WELL_PULL * falling, distance * 0.8);
-          const unitX = distance > 0 ? dx / distance : 0;
-          const unitY = distance > 0 ? dy / distance : 0;
-
-          const scale = 1 - WELL_SHRINK * falling;
-          const size = cellSize * scale;
-          const inset = (cellSize - size) / 2;
-
-          ctx.drawImage(
-            sprite,
-            cellX - unitX * pull + inset,
-            cellY - unitY * pull + inset,
-            size,
-            size,
-          );
+          if (distance > 0) {
+            px -= (dx / distance) * pull;
+            py -= (dy / distance) * pull;
+          }
+          sizeScale *= 1 - WELL_SHRINK * falling;
         }
-      }
-    };
 
-    const advanceDrift = () => {
-      const effectiveSpeed = Math.max(speed, 0.1);
-      switch (direction) {
-        case "right":
-          gridOffset.current.x =
-            (gridOffset.current.x - effectiveSpeed + cellSize) % cellSize;
-          break;
-        case "left":
-          gridOffset.current.x =
-            (gridOffset.current.x + effectiveSpeed + cellSize) % cellSize;
-          break;
-        case "up":
-          gridOffset.current.y =
-            (gridOffset.current.y + effectiveSpeed + cellSize) % cellSize;
-          break;
-        case "down":
-          gridOffset.current.y =
-            (gridOffset.current.y - effectiveSpeed + cellSize) % cellSize;
-          break;
-        case "diagonal":
-          gridOffset.current.x =
-            (gridOffset.current.x - effectiveSpeed + cellSize) % cellSize;
-          gridOffset.current.y =
-            (gridOffset.current.y - effectiveSpeed + cellSize) % cellSize;
-          break;
-        default:
-          break;
+        return {
+          x: px,
+          y: py,
+          scale: sizeScale,
+          alpha: NEAR_ALPHA + (FAR_ALPHA - NEAR_ALPHA) * depth,
+        };
+      });
+
+      // Bonds first so the atoms always sit on top of them.
+      ctx.strokeStyle = atomColor;
+      ctx.lineWidth = 1;
+      for (const [a, b] of edges) {
+        const p = points[a];
+        const q = points[b];
+        ctx.globalAlpha = (p.alpha + q.alpha) / 2;
+        ctx.beginPath();
+        ctx.moveTo(p.x, p.y);
+        ctx.lineTo(q.x, q.y);
+        ctx.stroke();
       }
+
+      for (const p of points) {
+        const size = atomSize * p.scale;
+        ctx.globalAlpha = p.alpha;
+        ctx.drawImage(sprite, p.x - size / 2, p.y - size / 2, size, size);
+      }
+
+      ctx.globalAlpha = 1;
     };
 
     const advanceWell = () => {
@@ -219,13 +280,6 @@ const Atoms = ({
       if (!pointer.inside && well.strength < 0.001) well.strength = 0;
     };
 
-    const updateAnimation = () => {
-      advanceDrift();
-      advanceWell();
-      drawField();
-      requestRef.current = requestAnimationFrame(updateAnimation);
-    };
-
     // Tracked on window, not the canvas: the hero's text and buttons sit above
     // the canvas and would otherwise swallow the pointer as it crosses them.
     const handleMouseMove = (event: MouseEvent) => {
@@ -244,12 +298,18 @@ const Atoms = ({
     };
 
     if (reduceMotion) {
-      // A single flat frame: no drift, no curvature.
-      drawField();
+      draw(0);
     } else {
       window.addEventListener("mousemove", handleMouseMove, { passive: true });
       document.addEventListener("mouseleave", handleMouseLeave);
-      requestRef.current = requestAnimationFrame(updateAnimation);
+      const started = performance.now();
+      const tick = () => {
+        const elapsed = (performance.now() - started) / 1000;
+        advanceWell();
+        draw((elapsed / rotationPeriod) * Math.PI * 2);
+        requestRef.current = requestAnimationFrame(tick);
+      };
+      requestRef.current = requestAnimationFrame(tick);
     }
 
     return () => {
@@ -258,7 +318,7 @@ const Atoms = ({
       document.removeEventListener("mouseleave", handleMouseLeave);
       if (requestRef.current) cancelAnimationFrame(requestRef.current);
     };
-  }, [direction, speed, atomColor, cellSize]);
+  }, [atomColor, rotationPeriod, radiusRatio]);
 
   return (
     <canvas ref={canvasRef} className={`atoms-canvas ${className}`}></canvas>

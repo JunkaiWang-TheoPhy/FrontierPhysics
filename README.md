@@ -91,9 +91,10 @@ mentor-skill policy, metadata, validation, and review evidence.
 - **WeChat**: [Scan QR code](docs/wechat-qr.jpg)
 - **Weekly sync**: Mondays 5PM PT / 8PM ET / 9AM GMT+8
 
-Contribution credit is tracked in points: a merged task you authored is worth 4,
-a merged task you reviewed is worth 1, and 12 points earns co-authorship on the
-FrontierPhysics paper and dataset. Reviewing counts — see the
+Contribution credit is tracked in points: a merged task you authored is worth 6,
+referring a contributor is worth 2 once their first task merges, a merged task
+you reviewed is worth 1, and 12 points earns co-authorship on the
+FrontierPhysics paper and dataset. Reviewing and referring count — see the
 [authorship policy](CONTRIBUTING.md#authorship-policy).
 
 ## License

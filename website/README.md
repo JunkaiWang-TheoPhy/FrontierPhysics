@@ -1,11 +1,8 @@
 # FrontierPhysics website
 
 The public site for [FrontierPhysics](https://github.com/benchflow-ai/FrontierPhysics),
-built with Next.js and Tailwind. The design follows the
-[SkillsBench site](https://github.com/benchflow-ai/skillsbench/tree/main/website):
-same tokens, navbar, and animated canvas hero — with the drifting lattice made
-of atoms rather than grid squares — cut down to the two pages this benchmark
-needs while it is still work in progress.
+built with Next.js and Tailwind. Two pages — a landing page and a contributor
+guide — which is all this benchmark needs while it is still work in progress.
 
 ## Run locally
 

@@ -1,76 +1,132 @@
 import { Button } from "@/components/ui/button";
-import { credit, site, tasksForAuthorship } from "@/lib/site";
+import {
+  credit,
+  scoringDeadline,
+  site,
+  stages,
+  tasksForAuthorship,
+} from "@/lib/site";
 import {
   ArrowUpRight,
   Award,
   Check,
+  Clock,
   FlaskConical,
-  Layers,
   ShieldCheck,
   X,
 } from "lucide-react";
 import type { Metadata } from "next";
-import Link from "next/link";
+
+const title = "Contribute a task";
+const description =
+  "How to turn physics research you have already done into a FrontierPhysics benchmark task.";
 
 export const metadata: Metadata = {
-  title: "Contribute a task",
-  description:
-    "How to turn physics research you have already done into a FrontierPhysics benchmark task.",
+  title,
+  description,
+  // Without its own canonical this page would inherit the home page's and be
+  // dropped from search results as a duplicate.
+  alternates: { canonical: `${site.url}/contribute` },
+  openGraph: {
+    title: `${title} | ${site.name}`,
+    description,
+    url: `${site.url}/contribute`,
+    siteName: site.name,
+    locale: "en_US",
+    type: "article",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: `${title} | ${site.name}`,
+    description,
+  },
 };
 
 const CRITERIA = [
   {
-    title: "Representative",
-    body: "It comes from a workflow used in real physics research — something you or your group actually had to do.",
-    check: "Have I done this myself?",
+    title: "Your own work",
+    body: "Real research you carried out, not a problem invented for the benchmark.",
+    check: "Did I do this myself?",
     icon: FlaskConical,
     accent: "text-chart-1",
     tint: "bg-chart-1/10",
   },
   {
-    title: "Complex",
-    body: "It needs substantial domain expertise. An agent without mentor skills should need 100+ steps and 80+ tool calls, and should be likely to fail.",
-    check: "Would this take a new student days?",
-    icon: Layers,
+    title: "Weeks of effort",
+    body: "At least two weeks of genuine effort, with or without an agent helping.",
+    check: "Did it really take weeks to finish?",
+    icon: Clock,
     accent: "text-chart-2",
     tint: "bg-chart-2/10",
   },
   {
     title: "Verifiable",
-    body: "The deliverables can be graded deterministically — numbers, files, and artifacts a test can check without a human in the loop.",
-    check: "Can a script tell right from wrong?",
+    body: "The result is right or wrong, and a script can tell which.",
+    check: "Can a script grade it?",
     icon: ShieldCheck,
     accent: "text-chart-3",
     tint: "bg-chart-3/10",
   },
 ];
 
+const ELIGIBILITY = [
+  "A PhD or current PhD candidate in physics, EECS, or an adjacent field",
+  "Or extensive hands-on experience in a physics lab or an equivalent industry role",
+];
+
 const STEPS = [
   {
     step: "01",
     title: "Ideate",
-    body: "Pick a domain where you have real expertise and a project you have already done that meets the three criteria above.",
+    body: "Pick a project that meets all three. Bring it to group chat or confirm with a maintainer before you build.",
   },
   {
     step: "02",
     title: "Create",
-    body: "Write the task package: the prompt and metadata in task.md, a pinned Docker environment, mentor skills, the oracle solution, and the verifier.",
+    body: "Write the task package: prompt and metadata, Docker environment, mentor skills, planning rubric, oracle, verifier.",
   },
   {
     step: "03",
     title: "Test",
-    body: "Run the oracle, then run at least one agent both with and without skills so the PR carries real evidence.",
+    body: "Run the oracle, then at least one agent with and without skills, over multiple trials.",
   },
   {
     step: "04",
     title: "Submit",
-    body: "Open a PR with pass rates, failure analysis, and artifacts for any multimodal outputs.",
+    body: "Fork the repository and open a draft pull request against main as soon as the shape is there, then iterate with a maintainer.",
+  },
+];
+
+const SUBMISSION = [
+  {
+    title: "A PR from your fork",
+    body: "Fork this repository and open a pull request against main here. One task per PR, touching only files under tasks/<task-id>/.",
+  },
+  {
+    title: "A detailed PR description",
+    body: "What the original work was, the physics it exercises, and where the data came from — plus a table reporting its history against these minimums.",
+    report: [
+      ["Project time scale — start and end date", "2 weeks"],
+      ["Actual working hours spent exploring the task", "40 hours"],
+      ["Estimated hours for a first-year PhD to reproduce it", "10 hours"],
+    ] as [string, string][],
+  },
+  {
+    title: "A local test results report",
+    body: "What you ran and what happened, across multiple trials rather than a single run.",
+    checks: [
+      "The oracle passes with reward exactly 1.0",
+      "Results for a state-of-the-art agent with skills",
+      "Results for the same agent without skills",
+    ],
+    example: { label: "Example task: PR #2.", href: `${site.repo}/pull/2` },
   },
 ];
 
 const YOUR_JOB = [
   "The prompt body — written by hand, in imperative prose",
   "The oracle solution, deriving the answer by computation",
+  "The planning rubric — what a sound research plan must get right",
   "The scientific judgement about what counts as correct",
   "The claim that this reflects real research practice",
 ];
@@ -80,11 +136,6 @@ const AI_CAN_HELP = [
   "Boilerplate for the verifier test harness",
   "Formatting metadata and frontmatter",
   "Tidying prose you have already written",
-];
-
-const CHECKS = [
-  "bench tasks check tasks/<task-id>",
-  "bench eval run --tasks-dir tasks/<task-id> --agent oracle --sandbox docker",
 ];
 
 export default function Contribute() {
@@ -97,39 +148,55 @@ export default function Contribute() {
         <h1 className="text-4xl sm:text-5xl font-bold tracking-tight leading-[1.05]">
           Turn research you have already done into a benchmark task
         </h1>
-        <p className="text-lg text-muted-foreground leading-relaxed">
-          No AI background required. The hard part is the physics, and you have
-          already done that part.
-        </p>
-
         <div className="flex items-start gap-4 rounded-2xl border border-chart-2/40 bg-chart-2/5 p-6">
           <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-chart-2/15 text-chart-2">
             <Award className="h-5 w-5" aria-hidden="true" />
           </span>
-          <div className="space-y-3">
+          <div className="space-y-2">
             <h2 className="font-semibold tracking-tight">
               Earn {credit.authorship} points, become a co-author
             </h2>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              A task you authored is worth{" "}
+              A merged task you authored earns{" "}
               <strong className="font-semibold text-foreground">
-                {credit.task} points
-              </strong>{" "}
-              when it merges; a task you reviewed is worth{" "}
+                {credit.task}
+              </strong>
+              , one you reviewed earns{" "}
               <strong className="font-semibold text-foreground">
                 {credit.review}
               </strong>
-              . At{" "}
+              , and referring a contributor earns{" "}
               <strong className="font-semibold text-foreground">
-                {credit.authorship} points
+                {credit.referral}
               </strong>{" "}
-              you are a co-author on the FrontierPhysics paper and the released
-              dataset — {tasksForAuthorship} authored tasks, or any mix of
-              authoring and reviewing that adds up.
+              once their first task merges. {tasksForAuthorship} authored tasks
+              gets you there, as does any mix that adds up. Points land on
+              merge.
             </p>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              <em>Merged</em> is the operative word. Points land on merge, not on
-              submission, and each task has to clear the bar below.
+              Reviewing opens up once you have your first good task merged — ask
+              a maintainer to be added as a reviewer.
+            </p>
+            <p className="text-sm leading-relaxed">
+              <strong className="font-semibold text-foreground">
+                Only tasks merged by {scoringDeadline} count.
+              </strong>{" "}
+              <span className="text-muted-foreground">
+                Merged, not opened — review and revision take days of
+                back-and-forth, so leave room for it.
+              </span>
+            </p>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              From the team behind{" "}
+              <a
+                href={site.skillsbenchPaper}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-foreground underline underline-offset-4 hover:text-muted-foreground transition-colors"
+              >
+                SkillsBench
+              </a>
+              , which passed 100 citations within three months of release.
             </p>
           </div>
         </div>
@@ -149,16 +216,30 @@ export default function Contribute() {
         </div>
       </header>
 
-      <section className="space-y-6 mb-20">
-        <div className="space-y-3">
-          <h2 className="text-2xl font-bold tracking-tight">
-            What makes a good task
-          </h2>
-          <p className="text-muted-foreground leading-relaxed">
-            All three at once. A task that misses any one of them will not
-            merge.
-          </p>
-        </div>
+      <section id="who" className="scroll-mt-28 space-y-6 mb-20">
+        <h2 className="text-2xl font-bold tracking-tight">
+          Who should contribute
+        </h2>
+        <ul className="space-y-3">
+          {ELIGIBILITY.map((item) => (
+            <li key={item} className="flex gap-3 text-muted-foreground">
+              <Check
+                className="h-5 w-5 shrink-0 mt-0.5 text-chart-2"
+                aria-hidden="true"
+              />
+              <span className="leading-relaxed">{item}</span>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <section id="ideal-task" className="scroll-mt-28 space-y-6 mb-20">
+        <h2 className="text-2xl font-bold tracking-tight">
+          What makes an ideal task
+        </h2>
+        <p className="text-muted-foreground leading-relaxed">
+          All three. A task that misses any one will not merge.
+        </p>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
           {CRITERIA.map((item) => (
@@ -177,7 +258,9 @@ export default function Contribute() {
               <p className="text-sm text-muted-foreground leading-relaxed grow">
                 {item.body}
               </p>
-              <p className="mt-4 pt-4 border-t border-border text-sm font-medium">
+              {/* Two lines are reserved so the rule sits at the same height in
+                  every card, whether the question wraps or not. */}
+              <p className="mt-4 pt-4 border-t border-border text-sm font-medium leading-5 min-h-14">
                 {item.check}
               </p>
             </div>
@@ -185,12 +268,40 @@ export default function Contribute() {
         </div>
 
         <p className="border-l-2 border-border pl-4 text-sm text-muted-foreground leading-relaxed">
-          Quality beats quantity — one excellent task is worth more than many
-          mediocre ones.
+          One excellent task is worth more than many mediocre ones.
         </p>
       </section>
 
-      <section className="space-y-6 mb-20">
+      <section id="two-stages" className="scroll-mt-28 space-y-6 mb-20">
+        <div className="space-y-3">
+          <h2 className="text-2xl font-bold tracking-tight">
+            Two stages, two graders
+          </h2>
+          <p className="text-muted-foreground leading-relaxed">
+            Every task is graded in two stages, and you write the grader for
+            each.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+          {stages.map((stage) => (
+            <div
+              key={stage.step}
+              className="rounded-2xl border border-border bg-card p-6 space-y-2"
+            >
+              <span className="font-mono text-sm text-muted-foreground">
+                {stage.step}
+              </span>
+              <h3 className="font-semibold tracking-tight">{stage.title}</h3>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                {stage.body}
+              </p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section id="steps" className="scroll-mt-28 space-y-6 mb-20">
         <h2 className="text-2xl font-bold tracking-tight">The four steps</h2>
         <ol className="space-y-6">
           {STEPS.map((item) => (
@@ -209,15 +320,13 @@ export default function Contribute() {
         </ol>
       </section>
 
-      <section className="space-y-6 mb-20">
+      <section id="yours" className="scroll-mt-28 space-y-6 mb-20">
         <div className="space-y-3">
           <h2 className="text-2xl font-bold tracking-tight">
             What you must write yourself
           </h2>
           <p className="text-muted-foreground leading-relaxed">
-            You can use an AI assistant for the software plumbing. The science
-            has to be yours — a benchmark built from generated physics measures
-            nothing.
+            Use an AI assistant for the plumbing. The science has to be yours.
           </p>
         </div>
 
@@ -262,45 +371,90 @@ export default function Contribute() {
         </div>
       </section>
 
-      <section className="space-y-6 mb-20">
+      <section id="submission" className="scroll-mt-28 space-y-6 mb-20">
         <div className="space-y-3">
           <h2 className="text-2xl font-bold tracking-tight">
-            Before you open the PR
+            The final submission
           </h2>
           <p className="text-muted-foreground leading-relaxed">
-            Both commands have to pass, and the oracle has to come back with
-            reward 1.0.
+            Three things. Open it as a draft long before it is finished —
+            reviewing and revising a task takes days of back-and-forth, and a
+            draft is the cheapest way to find out early that an idea will not
+            clear the bar.
           </p>
         </div>
-        <pre className="rounded-2xl border border-border bg-card p-6 overflow-x-auto text-xs sm:text-sm font-mono leading-loose text-muted-foreground">
-          {CHECKS.join("\n")}
-        </pre>
-        <p className="text-sm text-muted-foreground">
-          Then run at least one agent with and without skills, and put the pass
-          rates and failure analysis in the PR description. The prompt must
-          never mention a skill by name, and the verifier must check the
-          science, not which tools the agent reached for.
-        </p>
-      </section>
 
-      <section className="rounded-2xl border border-border bg-card p-8 text-center space-y-5">
-        <h2 className="text-2xl font-bold tracking-tight">
-          Ten minutes of triage can save a weekend
-        </h2>
-        <p className="text-muted-foreground max-w-lg mx-auto leading-relaxed">
-          Bring your task idea to Discord before you build it. A maintainer will
-          tell you quickly whether it clears the bar.
-        </p>
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-          <Button asChild>
-            <a href={site.discord} target="_blank" rel="noopener noreferrer">
-              Join Discord
-            </a>
-          </Button>
-          <Button asChild variant="secondary" className="border border-border">
-            <Link href="/#tasks">See existing tasks</Link>
-          </Button>
-        </div>
+        <ol className="space-y-5">
+          {SUBMISSION.map((item, index) => (
+            <li key={item.title} className="flex gap-5">
+              <span className="font-mono text-sm text-muted-foreground pt-0.5 shrink-0">
+                {String(index + 1).padStart(2, "0")}
+              </span>
+              <div className="space-y-1.5">
+                <h3 className="font-semibold tracking-tight">{item.title}</h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  {item.body}
+                  {item.example ? (
+                    <>
+                      {" "}
+                      <a
+                        href={item.example.href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-foreground underline underline-offset-4 hover:text-muted-foreground transition-colors"
+                      >
+                        {item.example.label}
+                      </a>
+                    </>
+                  ) : null}
+                </p>
+                {"report" in item && item.report ? (
+                  <div className="overflow-x-auto pt-1">
+                    <table className="w-full text-sm border-collapse">
+                      <thead>
+                        <tr className="border-b border-border">
+                          <th className="text-left font-medium py-2 pr-4">
+                            Report
+                          </th>
+                          <th className="text-left font-medium py-2 whitespace-nowrap">
+                            Minimum
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {item.report.map(([field, minimum]) => (
+                          <tr key={field} className="border-b border-border/60">
+                            <td className="py-2 pr-4 text-muted-foreground leading-relaxed">
+                              {field}
+                            </td>
+                            <td className="py-2 font-medium tabular-nums whitespace-nowrap">
+                              {minimum}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : null}
+                {"checks" in item && item.checks ? (
+                  <ul className="space-y-2 pt-1">
+                    {item.checks.map((check) => (
+                      <li key={check} className="flex gap-2.5 text-sm">
+                        <Check
+                          className="h-4 w-4 shrink-0 mt-0.5 text-chart-2"
+                          aria-hidden="true"
+                        />
+                        <span className="text-muted-foreground leading-relaxed">
+                          {check}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+              </div>
+            </li>
+          ))}
+        </ol>
       </section>
     </main>
   );

@@ -39,12 +39,7 @@ export function HeroBackground() {
 
   return (
     <div className="absolute inset-0 w-full h-full -z-50 bg-background">
-      <Atoms
-        direction="diagonal"
-        speed={0.15}
-        cellSize={56}
-        atomColor={atomColor}
-      />
+      <Atoms atomColor={atomColor} />
       {/* Vignette so the field fades out towards the edges of the hero. */}
       <div className="absolute inset-0 w-full h-full pointer-events-none bg-[radial-gradient(circle_at_center,transparent_40%,var(--background)_100%)] opacity-60" />
       <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-background to-transparent" />

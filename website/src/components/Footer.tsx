@@ -110,7 +110,16 @@ export function Footer() {
             >
               BenchFlow
             </a>{" "}
-            team · Open source under the Apache 2.0 License
+            team, also behind{" "}
+            <a
+              href={site.skillsbenchPaper}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-foreground transition-colors"
+            >
+              SkillsBench
+            </a>{" "}
+            · Open source under the Apache 2.0 License
           </p>
         </div>
       </div>
