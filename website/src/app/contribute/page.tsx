@@ -161,8 +161,8 @@ export default function Contribute() {
             </p>
             <p className="text-sm leading-relaxed">
               <strong className="font-semibold text-foreground">
-                &quot;Get tasks merged by {scoringDeadline} to join author list
-                of ICLR 2026&quot;
+                Get tasks merged by {scoringDeadline} to join author list of
+                ICLR 2026
               </strong>
             </p>
             <p className="text-sm text-muted-foreground leading-relaxed">

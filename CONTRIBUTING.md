@@ -32,7 +32,7 @@ Reviewing opens up once you have your first good task merged: authoring one is
 how you demonstrate you can judge someone else's. Ask a maintainer to be added
 as a reviewer.
 
-**"Get tasks merged by 31 August to join author list of ICLR 2026"** Merged, not
+**Get tasks merged by 31 August to join author list of ICLR 2026** Merged, not
 opened — review and revision take days of back-and-forth, so a PR opened close
 to the deadline is unlikely to land in time.
 
