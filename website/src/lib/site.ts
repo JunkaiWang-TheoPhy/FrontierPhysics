@@ -72,7 +72,7 @@ export const tasksForAuthorship = credit.authorship / credit.task;
  * merely opened, which is why the guidance pushes contributors to open a draft
  * early rather than polish in private.
  */
-export const scoringDeadline = "31 August 2026";
+export const scoringDeadline = "31 August";
 
 export const navItems = [
   { href: "/#tasks", label: "Tasks" },
