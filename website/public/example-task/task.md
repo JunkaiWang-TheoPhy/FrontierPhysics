@@ -2,7 +2,7 @@
 schema_version: '1.3'
 metadata:
   author_name: Bingran You
-  author_email: bingran.you@berkeley.edu
+  author_email: bingran@benchflow.ai
   difficulty: hard
   category: natural-science
   subcategory: trapped-ions
@@ -40,7 +40,7 @@ verifier:
     cleanup_conftests: true
 agent:
   timeout_sec: 3600.0
-environment:
+sandbox:
   network_mode: public
   build_timeout_sec: 1200.0
   os: linux
