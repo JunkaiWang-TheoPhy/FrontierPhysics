@@ -99,9 +99,10 @@ export default function Home() {
             <p className="text-muted-foreground max-w-3xl mx-auto leading-relaxed text-left">
               FrontierPhysics is a benchmark evaluating how AI agents do{" "}
               <strong className="font-medium text-foreground">
-                frontier physics research
+                frontier physics research iteratively
               </strong>
-              . We evaluate realistic research challenges from{" "}
+              . We evaluate realistic research challenges with iteration loops
+              from{" "}
               <strong className="font-medium text-foreground">
                 literature deep review
               </strong>{" "}
