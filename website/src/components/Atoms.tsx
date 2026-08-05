@@ -28,7 +28,10 @@ interface AtomsProps {
  * The pointer curves the lattice: atoms near it fall inward and shrink as they
  * recede into the well, and because the bonds are drawn from the same displaced
  * positions the whole mesh dimples rather than just the dots — the rubber-sheet
- * picture of a mass curving spacetime, now wrapped onto the sphere.
+ * picture of a mass curving spacetime, now wrapped onto the sphere. Only the
+ * hemisphere facing the viewer feels it: the well fades out across the
+ * terminator, so atoms round the back stay on the undisturbed sphere even
+ * where they project next to the pointer.
  */
 const SUBDIVISIONS = 3; // 3 → 642 vertices, 1920 bonds
 const FOCAL = 2.6; // perspective strength, in sphere radii
@@ -39,6 +42,8 @@ const TILT = -0.42; // radians; a slight lean so the poles are never edge-on
 const WELL_RADIUS = 200; // px — scale over which curvature falls off
 const WELL_PULL = 28; // px — deepest inward displacement
 const WELL_SHRINK = 0.24; // how much an atom shrinks at the bottom of the well
+const WELL_BACK_EDGE = 0.1; // depth (rzz) beyond which the pointer has no grip
+const WELL_FADE = 0.3; // depth span over which that grip eases to zero
 const FOLLOW_EASE = 0.16; // how quickly the well tracks the pointer
 const STRENGTH_EASE = 0.08; // how quickly it eases in and out
 
@@ -217,11 +222,19 @@ const Atoms = ({
           const dx = px - well.x;
           const dy = py - well.y;
           const distance = Math.hypot(dx, dy);
+          // 1 on the near side (rzz < 0), easing to 0 across the terminator,
+          // so the pointer never reaches through to the far hemisphere.
+          const facing = Math.min(
+            1,
+            Math.max(0, (WELL_BACK_EDGE - rzz) / WELL_FADE),
+          );
+          const frontness = facing * facing * (3 - 2 * facing);
           // 1 at the centre of the well, decaying smoothly to 0 far away.
           const falling =
             ((WELL_RADIUS * WELL_RADIUS) /
               (distance * distance + WELL_RADIUS * WELL_RADIUS)) *
-            well.strength;
+            well.strength *
+            frontness;
           // Clamped so an atom is never dragged past the centre and inverted.
           const pull = Math.min(WELL_PULL * falling, distance * 0.8);
           if (distance > 0) {

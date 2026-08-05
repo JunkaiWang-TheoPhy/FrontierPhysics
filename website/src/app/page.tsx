@@ -1,20 +1,15 @@
 import { HeroBackground } from "@/components/HeroBackground";
+import { TaskFileTree } from "@/components/TaskFileTree";
 import { Button } from "@/components/ui/button";
-import { credit, site, stages } from "@/lib/site";
+import {
+  exampleTask,
+  getExampleTaskConfig,
+  getExampleTaskTree,
+} from "@/lib/example-task";
+import { credit, site } from "@/lib/site";
 import { getTasks } from "@/lib/tasks";
 import { ArrowRight, ArrowUpRight, Award } from "lucide-react";
 import Link from "next/link";
-
-const PACKAGE_TREE = `tasks/<task-id>/
-  task.md            # prompt + metadata
-  environment/
-    Dockerfile       # frozen environment
-    skills/          # mentor skills
-  oracle/
-    solve.sh         # must reach reward 1.0
-  verifier/
-    test.sh
-    test_outputs.py  # checks the science`;
 
 export default function Home() {
   const tasks = getTasks();
@@ -97,101 +92,170 @@ export default function Home() {
         </section>
 
         <div className="max-w-5xl mx-auto px-4 md:px-8 py-12 space-y-28">
-          <section id="anatomy" className="scroll-mt-28">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-start">
-              <div className="space-y-4">
-                <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">
-                  What a task looks like
-                </h2>
-                <p className="text-muted-foreground leading-relaxed">
-                  A native BenchFlow{" "}
-                  <code className="font-mono text-sm">task.md</code> package. The
-                  prompt describes an outcome and never names any skill. The
-                  oracle must pass with reward 1.0 before any agent runs, and
-                  every attempt is graded in two stages.
-                </p>
-                <ol className="space-y-4 pt-1">
-                  {stages.map((stage) => (
-                    <li key={stage.step} className="flex gap-4">
-                      <span className="font-mono text-sm text-muted-foreground pt-0.5 shrink-0">
-                        {stage.step}
-                      </span>
-                      <div className="space-y-1">
-                        <h3 className="font-semibold tracking-tight text-sm">
-                          {stage.title}
-                        </h3>
-                        <p className="text-sm text-muted-foreground leading-relaxed">
-                          {stage.body}
-                        </p>
-                      </div>
-                    </li>
-                  ))}
-                </ol>
-                <p className="text-muted-foreground leading-relaxed">
-                  Prompts, oracle logic, and the planning rubric are
-                  human-authored.
-                </p>
-              </div>
-
-              <pre className="rounded-2xl border border-border bg-card p-6 overflow-x-auto text-xs sm:text-sm font-mono leading-relaxed text-muted-foreground">
-                {PACKAGE_TREE}
-              </pre>
-            </div>
+          <section id="how-it-works" className="scroll-mt-28 space-y-4 text-center">
+            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">
+              How FrontierPhysics Works
+            </h2>
+            <p className="text-muted-foreground max-w-3xl mx-auto leading-relaxed text-left">
+              FrontierPhysics is a benchmark evaluating how AI agents do{" "}
+              <strong className="font-medium text-foreground">
+                frontier physics research
+              </strong>
+              . We evaluate realistic research challenges from{" "}
+              <strong className="font-medium text-foreground">
+                literature deep review
+              </strong>{" "}
+              to{" "}
+              <strong className="font-medium text-foreground">
+                research plan implementation
+              </strong>
+              . Tasks come from real research problems that take at least{" "}
+              <strong className="font-medium text-foreground">
+                weeks of effort
+              </strong>{" "}
+              for a physics PhD to do deep research and implement, and SOTA LLM
+              agents{" "}
+              <strong className="font-medium text-foreground">struggle</strong>{" "}
+              with. The tasks are evaluated with verifiable graders and
+              per-task rubric-based reviewer agents to make sure agents are
+              doing research in ways{" "}
+              <strong className="font-medium text-foreground">
+                aligned with real frontier researchers
+              </strong>
+              .
+            </p>
           </section>
 
           <section id="tasks" className="scroll-mt-28">
-            <div className="mb-10 space-y-3">
+            <div className="mb-10 text-center">
               <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">
                 Example tasks
               </h2>
-              <p className="text-muted-foreground max-w-2xl leading-relaxed">
-                Each one comes from research a contributor had already done.
-              </p>
             </div>
 
-            {tasks.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {tasks.map((task) => (
-                  <a
-                    key={task.id}
-                    href={`${site.tasksTree}/${task.id}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="group rounded-2xl border border-border bg-card p-6 space-y-3 hover:border-foreground/25 transition-colors"
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <h3 className="font-mono text-sm font-semibold tracking-tight">
-                        {task.id}
-                      </h3>
-                      <ArrowUpRight
-                        className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5"
-                        aria-hidden="true"
-                      />
-                    </div>
+            <div className="mb-6 space-y-3">
+              <h3 className="font-mono text-base font-semibold tracking-tight">
+                {exampleTask.id}
+              </h3>
 
-                    <div className="flex flex-wrap gap-1.5">
-                      {[task.difficulty, task.subcategory, ...task.taskTypes]
-                        .filter(Boolean)
-                        .map((tag) => (
-                          <span
-                            key={tag}
-                            className="rounded-full border border-border bg-muted px-2.5 py-0.5 text-xxs font-medium text-muted-foreground"
-                          >
-                            {tag}
-                          </span>
-                        ))}
-                    </div>
-
-                    <p className="text-sm text-muted-foreground leading-relaxed">
-                      {task.summary}
-                    </p>
-                  </a>
-                ))}
+              <div className="flex flex-wrap gap-1.5">
+                {[
+                  exampleTask.difficulty,
+                  exampleTask.subcategory,
+                  ...exampleTask.taskTypes,
+                ]
+                  .filter(Boolean)
+                  .map((tag) => (
+                    <span
+                      key={tag}
+                      className="rounded-full border border-border bg-muted px-2.5 py-0.5 text-xxs font-medium text-muted-foreground"
+                    >
+                      {tag}
+                    </span>
+                  ))}
               </div>
-            ) : (
-              <p className="text-sm text-muted-foreground">
-                No task packages found in this checkout.
-              </p>
+            </div>
+
+            {/* Both cards stretch to the same row height so their edges align. */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
+              <div className="rounded-2xl border border-border bg-card overflow-hidden">
+                <div className="border-b border-border px-4 py-2.5 font-mono text-xs text-muted-foreground">
+                  task.md · config
+                </div>
+                <div className="max-h-[480px] overflow-y-auto px-5 divide-y divide-border">
+                  {getExampleTaskConfig().map((group) => (
+                    <div
+                      key={group.title ?? "root"}
+                      className="py-4 space-y-2.5"
+                    >
+                      {group.title && (
+                        <p className="font-mono text-xxs uppercase tracking-widest text-muted-foreground/70">
+                          {group.title}
+                        </p>
+                      )}
+                      <dl className="space-y-1.5">
+                        {group.rows.map((row) => (
+                          <div
+                            key={row.label}
+                            className="grid grid-cols-[9rem_1fr] gap-x-3"
+                          >
+                            <dt className="font-mono text-xs leading-6 text-muted-foreground">
+                              {row.label}
+                            </dt>
+                            <dd className="min-w-0 text-xs leading-6">
+                              {Array.isArray(row.value) ? (
+                                <span className="flex flex-wrap gap-1 py-0.5">
+                                  {row.value.map((item) => (
+                                    <span
+                                      key={item}
+                                      className="rounded-full border border-border bg-muted px-2 py-0.5 text-xxs font-medium text-muted-foreground"
+                                    >
+                                      {item}
+                                    </span>
+                                  ))}
+                                </span>
+                              ) : (
+                                <span className="break-words text-foreground/90">
+                                  {row.value}
+                                </span>
+                              )}
+                            </dd>
+                          </div>
+                        ))}
+                      </dl>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <TaskFileTree
+                rootLabel={`tasks/${exampleTask.id}/`}
+                nodes={getExampleTaskTree()}
+                defaultOpen={["environment", "oracle", "verifier"]}
+              />
+            </div>
+
+            {tasks.filter((task) => task.id !== exampleTask.id).length > 0 && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-10">
+                {tasks
+                  .filter((task) => task.id !== exampleTask.id)
+                  .map((task) => (
+                    <a
+                      key={task.id}
+                      href={`${site.tasksTree}/${task.id}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="group rounded-2xl border border-border bg-card p-6 space-y-3 hover:border-foreground/25 transition-colors"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <h3 className="font-mono text-sm font-semibold tracking-tight">
+                          {task.id}
+                        </h3>
+                        <ArrowUpRight
+                          className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5"
+                          aria-hidden="true"
+                        />
+                      </div>
+
+                      <div className="flex flex-wrap gap-1.5">
+                        {[task.difficulty, task.subcategory, ...task.taskTypes]
+                          .filter(Boolean)
+                          .map((tag) => (
+                            <span
+                              key={tag}
+                              className="rounded-full border border-border bg-muted px-2.5 py-0.5 text-xxs font-medium text-muted-foreground"
+                            >
+                              {tag}
+                            </span>
+                          ))}
+                      </div>
+
+                      <p className="text-sm text-muted-foreground leading-relaxed">
+                        {task.summary}
+                      </p>
+                    </a>
+                  ))}
+              </div>
             )}
           </section>
 

@@ -5,6 +5,9 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 EXPECTED_TASKS = ()
+# Display-only task snapshots vendored for the website's file browser; they
+# are not public tasks and stay out of the layout check.
+VENDORED_SNAPSHOTS = (ROOT / "website" / "public" / "example-task",)
 
 
 def main() -> int:
@@ -19,7 +22,14 @@ def main() -> int:
         if (ROOT / forbidden).exists():
             problems.append(f"forbidden public task directory exists: {forbidden}/")
 
-    task_files = sorted(path for path in ROOT.glob("**/task.md") if ".venv" not in path.parts and ".git" not in path.parts)
+    task_files = sorted(
+        path
+        for path in ROOT.glob("**/task.md")
+        if ".venv" not in path.parts
+        and ".git" not in path.parts
+        and "node_modules" not in path.parts
+        and not any(path.is_relative_to(snapshot) for snapshot in VENDORED_SNAPSHOTS)
+    )
     expected_files = sorted(tasks_root / task_name / "task.md" for task_name in EXPECTED_TASKS)
     if task_files != expected_files:
         problems.append(

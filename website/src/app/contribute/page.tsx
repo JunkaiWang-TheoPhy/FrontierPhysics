@@ -1,11 +1,5 @@
 import { Button } from "@/components/ui/button";
-import {
-  credit,
-  scoringDeadline,
-  site,
-  stages,
-  tasksForAuthorship,
-} from "@/lib/site";
+import { credit, scoringDeadline, site, stages } from "@/lib/site";
 import {
   ArrowUpRight,
   Award,
@@ -13,7 +7,6 @@ import {
   Clock,
   FlaskConical,
   ShieldCheck,
-  X,
 } from "lucide-react";
 import type { Metadata } from "next";
 
@@ -74,29 +67,6 @@ const ELIGIBILITY = [
   "Or extensive hands-on experience in a physics lab or an equivalent industry role",
 ];
 
-const STEPS = [
-  {
-    step: "01",
-    title: "Ideate",
-    body: "Pick a project that meets all three. Bring it to group chat or confirm with a maintainer before you build.",
-  },
-  {
-    step: "02",
-    title: "Create",
-    body: "Write the task package: prompt and metadata, Docker environment, mentor skills, planning rubric, oracle, verifier.",
-  },
-  {
-    step: "03",
-    title: "Test",
-    body: "Run the oracle, then at least one agent with and without skills, over multiple trials.",
-  },
-  {
-    step: "04",
-    title: "Submit",
-    body: "Fork the repository and open a draft pull request against main as soon as the shape is there, then iterate with a maintainer.",
-  },
-];
-
 const SUBMISSION = [
   {
     title: "A PR from your fork",
@@ -119,23 +89,37 @@ const SUBMISSION = [
       "Results for a state-of-the-art agent with skills",
       "Results for the same agent without skills",
     ],
-    example: { label: "Example task: PR #2.", href: `${site.repo}/pull/2` },
+    example: { label: "Example task: PR #23.", href: `${site.repo}/pull/23` },
   },
 ];
 
-const YOUR_JOB = [
-  "The prompt body — written by hand, in imperative prose",
-  "The oracle solution, deriving the answer by computation",
-  "The planning rubric — what a sound research plan must get right",
-  "The scientific judgement about what counts as correct",
-  "The claim that this reflects real research practice",
-];
-
-const AI_CAN_HELP = [
-  "Dockerfile scaffolding and pinning dependencies",
-  "Boilerplate for the verifier test harness",
-  "Formatting metadata and frontmatter",
-  "Tidying prose you have already written",
+const KEY_PARTS = [
+  {
+    name: "task.md",
+    body: "The task description, in two parts.",
+    parts: [
+      [
+        "Research",
+        "Reviewing literature and making plans. The plan and thinking process are evaluated based on rubrics written by the contributor.",
+      ],
+      [
+        "Implementation",
+        "The concrete problem-solving request that can be verified by code scripts.",
+      ],
+    ] as [string, string][],
+  },
+  {
+    name: "rubric.json",
+    body: "The item-by-item list of rubrics that describe the expectations from the researchers. It mainly focuses on the research and planning parts that are not verifiable via code scripts.",
+  },
+  {
+    name: "verifier",
+    body: "The verifier logic for checking the agent's final deliverables. Code scripts for checking verifiable results.",
+  },
+  {
+    name: "oracle",
+    body: "The ground truth answer provided by the contributor. Always gets reward == 1 on the verifier.",
+  },
 ];
 
 export default function Contribute() {
@@ -169,9 +153,7 @@ export default function Contribute() {
               <strong className="font-semibold text-foreground">
                 {credit.referral}
               </strong>{" "}
-              once their first task merges. {tasksForAuthorship} authored tasks
-              gets you there, as does any mix that adds up. Points land on
-              merge.
+              once their first task merges.
             </p>
             <p className="text-sm text-muted-foreground leading-relaxed">
               Reviewing opens up once you have your first good task merged — ask
@@ -180,11 +162,7 @@ export default function Contribute() {
             <p className="text-sm leading-relaxed">
               <strong className="font-semibold text-foreground">
                 Only tasks merged by {scoringDeadline} count.
-              </strong>{" "}
-              <span className="text-muted-foreground">
-                Merged, not opened — review and revision take days of
-                back-and-forth, so leave room for it.
-              </span>
+              </strong>
             </p>
             <p className="text-sm text-muted-foreground leading-relaxed">
               From the team behind{" "}
@@ -196,7 +174,7 @@ export default function Contribute() {
               >
                 SkillsBench
               </a>
-              , which passed 100 citations within three months of release.
+              , 100+ citations within three months of release.
             </p>
           </div>
         </div>
@@ -210,14 +188,14 @@ export default function Contribute() {
           </Button>
           <Button asChild variant="secondary" className="border border-border">
             <a href={site.discord} target="_blank" rel="noopener noreferrer">
-              Ask a maintainer first
+              Join the community
             </a>
           </Button>
         </div>
       </header>
 
       <section id="who" className="scroll-mt-28 space-y-6 mb-20">
-        <h2 className="text-2xl font-bold tracking-tight">
+        <h2 className="text-2xl font-bold tracking-tight text-center">
           Who should contribute
         </h2>
         <ul className="space-y-3">
@@ -234,7 +212,7 @@ export default function Contribute() {
       </section>
 
       <section id="ideal-task" className="scroll-mt-28 space-y-6 mb-20">
-        <h2 className="text-2xl font-bold tracking-tight">
+        <h2 className="text-2xl font-bold tracking-tight text-center">
           What makes an ideal task
         </h2>
         <p className="text-muted-foreground leading-relaxed">
@@ -266,15 +244,11 @@ export default function Contribute() {
             </div>
           ))}
         </div>
-
-        <p className="border-l-2 border-border pl-4 text-sm text-muted-foreground leading-relaxed">
-          One excellent task is worth more than many mediocre ones.
-        </p>
       </section>
 
       <section id="two-stages" className="scroll-mt-28 space-y-6 mb-20">
         <div className="space-y-3">
-          <h2 className="text-2xl font-bold tracking-tight">
+          <h2 className="text-2xl font-bold tracking-tight text-center">
             Two stages, two graders
           </h2>
           <p className="text-muted-foreground leading-relaxed">
@@ -301,79 +275,50 @@ export default function Contribute() {
         </div>
       </section>
 
-      <section id="steps" className="scroll-mt-28 space-y-6 mb-20">
-        <h2 className="text-2xl font-bold tracking-tight">The four steps</h2>
-        <ol className="space-y-6">
-          {STEPS.map((item) => (
-            <li key={item.step} className="flex gap-5">
-              <span className="font-mono text-sm text-muted-foreground pt-0.5 shrink-0">
-                {item.step}
-              </span>
-              <div className="space-y-1.5">
-                <h3 className="font-semibold tracking-tight">{item.title}</h3>
+      <section id="key-parts" className="scroll-mt-28 space-y-6 mb-20">
+        <h2 className="text-2xl font-bold tracking-tight text-center">
+          Key parts of a task
+        </h2>
+
+        <div className="rounded-2xl border border-border bg-card divide-y divide-border">
+          {KEY_PARTS.map((part) => (
+            <div
+              key={part.name}
+              className="p-6 grid grid-cols-1 sm:grid-cols-[8rem_1fr] gap-2 sm:gap-6"
+            >
+              <h3 className="font-mono text-sm font-semibold tracking-tight">
+                {part.name}
+              </h3>
+              <div className="space-y-2.5">
                 <p className="text-sm text-muted-foreground leading-relaxed">
-                  {item.body}
+                  {part.body}
                 </p>
+                {part.parts && (
+                  <ol className="space-y-1.5">
+                    {part.parts.map(([label, detail], i) => (
+                      <li key={label} className="flex gap-2.5 text-sm">
+                        <span className="font-mono text-muted-foreground">
+                          {i + 1}.
+                        </span>
+                        <span className="text-muted-foreground leading-relaxed">
+                          <span className="font-medium text-foreground">
+                            {label}
+                          </span>{" "}
+                          — {detail}
+                        </span>
+                      </li>
+                    ))}
+                  </ol>
+                )}
               </div>
-            </li>
+            </div>
           ))}
-        </ol>
-      </section>
-
-      <section id="yours" className="scroll-mt-28 space-y-6 mb-20">
-        <div className="space-y-3">
-          <h2 className="text-2xl font-bold tracking-tight">
-            What you must write yourself
-          </h2>
-          <p className="text-muted-foreground leading-relaxed">
-            Use an AI assistant for the plumbing. The science has to be yours.
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-          <div className="rounded-2xl border border-border bg-card p-6 space-y-4">
-            <h3 className="font-semibold tracking-tight text-sm">
-              Never delegate
-            </h3>
-            <ul className="space-y-2.5">
-              {YOUR_JOB.map((item) => (
-                <li key={item} className="flex gap-2.5 text-sm">
-                  <X
-                    className="h-4 w-4 shrink-0 mt-0.5 text-chart-1"
-                    aria-hidden="true"
-                  />
-                  <span className="text-muted-foreground leading-relaxed">
-                    {item}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          <div className="rounded-2xl border border-border bg-card p-6 space-y-4">
-            <h3 className="font-semibold tracking-tight text-sm">
-              Fine to delegate
-            </h3>
-            <ul className="space-y-2.5">
-              {AI_CAN_HELP.map((item) => (
-                <li key={item} className="flex gap-2.5 text-sm">
-                  <Check
-                    className="h-4 w-4 shrink-0 mt-0.5 text-chart-2"
-                    aria-hidden="true"
-                  />
-                  <span className="text-muted-foreground leading-relaxed">
-                    {item}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </div>
         </div>
       </section>
 
       <section id="submission" className="scroll-mt-28 space-y-6 mb-20">
         <div className="space-y-3">
-          <h2 className="text-2xl font-bold tracking-tight">
+          <h2 className="text-2xl font-bold tracking-tight text-center">
             The final submission
           </h2>
           <p className="text-muted-foreground leading-relaxed">
