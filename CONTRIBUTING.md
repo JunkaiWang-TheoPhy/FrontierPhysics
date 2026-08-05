@@ -18,7 +18,7 @@ on the FrontierPhysics paper and dataset.
 |---|---:|
 | A task you authored is merged | 6 |
 | A contributor you referred gets their first task merged | 2 |
-| A task you reviewed is merged | 1 |
+| A task you reviewed is merged | 2 |
 
 Points accumulate across all three kinds of work, so two merged tasks reaches
 12, and so does any mix that adds up — one merged task, a referral, and four

@@ -41,7 +41,7 @@ export const credit = {
   /** Points for referring a contributor, once their first task merges. */
   referral: 2,
   /** Points for a task you reviewed being merged. */
-  review: 1,
+  review: 2,
   /** Points that earn co-authorship on the paper and dataset. */
   authorship: 12,
 } as const;
