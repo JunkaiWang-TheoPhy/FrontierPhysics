@@ -1,4 +1,5 @@
 import { HeroBackground } from "@/components/HeroBackground";
+import { ResearchLoop } from "@/components/ResearchLoop";
 import { TaskFileTree } from "@/components/TaskFileTree";
 import { Button } from "@/components/ui/button";
 import {
@@ -92,11 +93,12 @@ export default function Home() {
         </section>
 
         <div className="max-w-5xl mx-auto px-4 md:px-8 py-12 space-y-28">
-          <section id="how-it-works" className="scroll-mt-28 space-y-4 text-center">
+          <section id="how-it-works" className="scroll-mt-28 space-y-8 text-center">
             <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">
               How FrontierPhysics Works
             </h2>
-            <p className="text-muted-foreground max-w-3xl mx-auto leading-relaxed text-left">
+            <div className="grid grid-cols-1 lg:grid-cols-[1.25fr_1fr] gap-10 lg:gap-14 items-center">
+              <p className="text-muted-foreground leading-relaxed text-left">
               FrontierPhysics is a benchmark evaluating how AI agents do{" "}
               <strong className="font-medium text-foreground">
                 frontier physics research iteratively
@@ -124,7 +126,9 @@ export default function Home() {
                 aligned with real frontier researchers
               </strong>
               .
-            </p>
+              </p>
+              <ResearchLoop className="w-full max-w-xs sm:max-w-sm mx-auto lg:max-w-[23rem]" />
+            </div>
           </section>
 
           <section id="tasks" className="scroll-mt-28">
