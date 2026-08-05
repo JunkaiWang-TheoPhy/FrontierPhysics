@@ -4,11 +4,10 @@
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-EXPECTED_TASKS = ()
-# Display-only task snapshots vendored for the website's file browser; they
-# are not public tasks and stay out of the layout check.
+EXPECTED_TASKS = (
+    "surface-ion-trap-shuttling",
+)
 VENDORED_SNAPSHOTS = (ROOT / "website" / "public" / "example-task",)
-
 
 def main() -> int:
     problems: list[str] = []

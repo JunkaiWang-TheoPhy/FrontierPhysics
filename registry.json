@@ -6,6 +6,12 @@
     "bench_version": ">=0.6.3,<0.7",
     "primary_condition": "no-skill",
     "control_condition": "with-skill",
-    "tasks": []
+    "tasks": [
+      {
+        "name": "surface-ion-trap-shuttling",
+        "path": "tasks/surface-ion-trap-shuttling",
+        "digest": "sha256:9418e2ab7d2539980bbb5ef25873cc47931ed07f5e205b87e49f016386bbd388"
+      }
+    ]
   }
 ]
