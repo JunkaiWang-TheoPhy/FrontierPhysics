@@ -12,23 +12,7 @@ Are AI agents good physicists?
 
 ## What is FrontierPhysics?
 
-FrontierPhysics measures whether AI agents can complete authentic,
-specialist-level physics workflows: building physical models, deriving
-quantities, running numerical simulations, analyzing scientific data, and
-producing research artifacts.
-
-The primary benchmark condition gives agents the task, environment, and tools
-without mentor skills. Each task also ships a reviewable mentor package as a
-solvability control. A strong with-skill result helps distinguish a genuine
-capability limit from a broken task, environment, oracle, or verifier.
-
-**Goals:**
-
-- Build a rigorous public benchmark for advanced physics research
-- Measure independent agent capability through no-skill pass rate
-- Use mentor-guided control runs to validate task solvability
-- Preserve scientific provenance, trajectories, diagnostics, and artifacts
-- Cover theoretical, computational, experimental, and instrumentation work
+FrontierPhysics is a benchmark evaluating how AI agents do **frontier physics research**. We evaluate realistic research challenges from **literature deep review** to **research plan implementation**. Tasks come from real research problems that take at least **weeks of effort** for a physics PhD to do deep research and implement, and SOTA LLM agents **struggle** with. The tasks are evaluated with verifiable graders and per-task rubric-based reviewer agents to make sure agents are doing research in ways **aligned with real frontier researchers**.
 
 ## Quick Start
 
@@ -52,18 +36,13 @@ bench eval run \
   --sandbox docker
 ```
 
-Runnable benchmark tasks live under `tasks/`. FrontierPhysics uses `uv.lock`
-for reproducible repository tooling while the `bench` CLI runs task validation
-and evaluations.
+Runnable benchmark tasks live under `tasks/`. FrontierPhysics uses `uv.lock` for reproducible repository tooling while the `bench` CLI runs task validation and evaluations.
 
-See [experiments/README.md](experiments/README.md) for paired no-skill and
-with-skill commands.
+See [experiments/README.md](experiments/README.md) for paired no-skill and with-skill commands.
 
 ### API Keys
 
-Running hosted agents may require provider credentials or an authenticated
-local agent session. Export only the credentials required by the selected
-agent. Keep secrets in an ignored `.env` or `.envrc`; never commit them.
+Running hosted agents may require provider credentials or an authenticated local agent session. Export only the credentials required by the selected agent. Keep secrets in an ignored `.env` or `.envrc`; never commit them.
 
 ### Creating Tasks
 
@@ -78,12 +57,12 @@ tasks/<task-id>/
   oracle/
     solve.sh
   verifier/
+    rubric.json
     test.sh
     test_outputs.py
 ```
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for scientific-quality requirements,
-mentor-skill policy, metadata, validation, and review evidence.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for scientific-quality requirements, mentor-skill policy, metadata, validation, and review evidence.
 
 ## Get Involved
 
@@ -91,13 +70,8 @@ mentor-skill policy, metadata, validation, and review evidence.
 - **WeChat**: [Scan QR code](docs/wechat-qr.jpg)
 - **Weekly sync**: Mondays 5PM PT / 8PM ET / 9AM GMT+8
 
-Contribution credit is tracked in points: a merged task you authored is worth 6,
-referring a contributor is worth 2 once their first task merges, a merged task
-you reviewed is worth 1, and 12 points earns co-authorship on the
-FrontierPhysics paper and dataset. Reviewing and referring count — see the
-[authorship policy](CONTRIBUTING.md#authorship-policy).
+Contribution credit is tracked in points: a merged task you authored is worth 6, referring a contributor is worth 2 once their first task merges, a merged task you reviewed is worth 1, and 12 points earns co-authorship on the FrontierPhysics paper and dataset. Reviewing and referring count — see the [authorship policy](CONTRIBUTING.md#authorship-policy).
 
 ## License
 
-[Apache 2.0](LICENSE). Bundled third-party components retain their own license
-notices; see [NOTICE](NOTICE).
+[Apache 2.0](LICENSE). Bundled third-party components retain their own license notices; see [NOTICE](NOTICE).
