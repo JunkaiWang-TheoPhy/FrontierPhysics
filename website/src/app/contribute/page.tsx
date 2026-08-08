@@ -175,7 +175,7 @@ export default function Contribute() {
               >
                 SkillsBench
               </a>
-              , 100+ citations within three months of release.
+              , 170+ citations within 6 months of release.
             </p>
           </div>
         </div>

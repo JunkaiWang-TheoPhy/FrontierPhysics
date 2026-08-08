@@ -1,3 +1,4 @@
+import { ContributorLogos } from "@/components/ContributorLogos";
 import { HeroBackground } from "@/components/HeroBackground";
 import { ResearchLoop } from "@/components/ResearchLoop";
 import { TaskFileTree } from "@/components/TaskFileTree";
@@ -92,6 +93,8 @@ export default function Home() {
             </p>
           </div>
         </section>
+
+        <ContributorLogos />
 
         <div className="max-w-5xl mx-auto px-4 md:px-8 py-12 space-y-28">
           <section id="how-it-works" className="scroll-mt-28 space-y-8 text-center">
