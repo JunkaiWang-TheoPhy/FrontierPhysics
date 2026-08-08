@@ -182,18 +182,101 @@ export default function Contribute() {
 
         <div className="flex flex-col sm:flex-row gap-4 pt-2">
           <Button asChild>
-            <a href={site.contributing} target="_blank" rel="noopener noreferrer">
-              Full contributor guide
+            <a href={site.joinForm} target="_blank" rel="noopener noreferrer">
+              Join the team
               <ArrowUpRight className="h-4 w-4" aria-hidden="true" />
             </a>
           </Button>
           <Button asChild variant="secondary" className="border border-border">
-            <a href={site.discord} target="_blank" rel="noopener noreferrer">
-              Join the community
+            <a href={site.contributing} target="_blank" rel="noopener noreferrer">
+              Contribute a task
             </a>
           </Button>
         </div>
       </header>
+
+      <section id="get-started" className="scroll-mt-28 space-y-6 mb-20">
+        <h2 className="text-2xl font-bold tracking-tight text-center">
+          Getting started
+        </h2>
+
+        <div className="rounded-2xl border border-border bg-card divide-y divide-border">
+          <div className="p-6 flex gap-5">
+            <span className="font-mono text-sm text-muted-foreground pt-0.5 shrink-0">
+              01
+            </span>
+            <div className="space-y-1.5">
+              <h3 className="font-semibold tracking-tight">
+                Join the contributors team
+              </h3>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                Fill in the{" "}
+                <a
+                  href={site.joinForm}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-foreground underline underline-offset-4 hover:text-muted-foreground transition-colors"
+                >
+                  join form
+                </a>{" "}
+                to get access to the group chats, the shared Google Drive, and
+                the GitHub repository.
+              </p>
+            </div>
+          </div>
+          <div className="p-6 flex gap-5">
+            <span className="font-mono text-sm text-muted-foreground pt-0.5 shrink-0">
+              02
+            </span>
+            <div className="space-y-1.5">
+              <h3 className="font-semibold tracking-tight">
+                Contribute a task — two ways
+              </h3>
+              <ol className="space-y-1.5">
+                <li className="flex gap-2.5 text-sm">
+                  <span className="font-mono text-muted-foreground">1.</span>
+                  <span className="text-muted-foreground leading-relaxed">
+                    Fill in the{" "}
+                    <a
+                      href={site.taskForm}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-foreground underline underline-offset-4 hover:text-muted-foreground transition-colors"
+                    >
+                      task form
+                    </a>{" "}
+                    and co-work with reviewers in email threads.
+                  </span>
+                </li>
+                <li className="flex gap-2.5 text-sm">
+                  <span className="font-mono text-muted-foreground">2.</span>
+                  <span className="text-muted-foreground leading-relaxed">
+                    Send a PR in{" "}
+                    <a
+                      href={site.repo}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-foreground underline underline-offset-4 hover:text-muted-foreground transition-colors"
+                    >
+                      benchflow-ai/FrontierPhysics
+                    </a>{" "}
+                    to add a task, following the{" "}
+                    <a
+                      href={`${site.repo}/pull/23`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-foreground underline underline-offset-4 hover:text-muted-foreground transition-colors"
+                    >
+                      example PR
+                    </a>
+                    .
+                  </span>
+                </li>
+              </ol>
+            </div>
+          </div>
+        </div>
+      </section>
 
       <section id="who" className="scroll-mt-28 space-y-6 mb-20">
         <h2 className="text-2xl font-bold tracking-tight text-center">

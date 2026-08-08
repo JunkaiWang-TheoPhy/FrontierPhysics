@@ -33,8 +33,9 @@ export default function Home() {
               <ArrowRight className="ml-1.5 h-3 w-3 transition-transform group-hover:translate-x-0.5" />
             </Link>
 
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight leading-[1.05] max-w-3xl mx-auto">
-              Are AI agents good physicists?
+            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight leading-[1.05] max-w-4xl mx-auto">
+              Evaluate agents for end-to-end{" "}
+              <span className="sm:block">frontier physics research.</span>
             </h1>
 
             <p className="max-w-xl mx-auto text-lg text-foreground/80 leading-relaxed">

@@ -1,6 +1,6 @@
 export const site = {
   name: "FrontierPhysics",
-  tagline: "Are AI agents good physicists?",
+  tagline: "Evaluate agents for end-to-end frontier physics research.",
   description:
     "FrontierPhysics is an open benchmark measuring whether AI agents can carry out authentic, specialist-level physics research.",
   /**
@@ -13,6 +13,10 @@ export const site = {
   url: "https://www.benchflow.ai/frontierphysics",
   repo: "https://github.com/benchflow-ai/FrontierPhysics",
   discord: "https://discord.gg/G9dg3EfSva",
+  /** Onboarding form: unlocks the group chats, Google Drive, and GitHub repo. */
+  joinForm: "https://forms.gle/BVxbGg8VbHsbpMxi9",
+  /** Task form for contributing by co-working with reviewers over email. */
+  taskForm: "https://forms.gle/XTtngjHLfkGCyaBG8",
   contributing:
     "https://github.com/benchflow-ai/FrontierPhysics/blob/main/CONTRIBUTING.md",
   protocol:
@@ -77,7 +81,6 @@ export const scoringDeadline = "31 August";
 export const navItems = [
   { href: "/#tasks", label: "Tasks" },
   { href: "/contribute", label: "Contribute" },
-  { href: site.docs, label: "Docs", external: true },
 ] as const satisfies readonly {
   href: string;
   label: string;
