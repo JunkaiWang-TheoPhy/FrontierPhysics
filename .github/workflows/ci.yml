@@ -24,6 +24,8 @@ jobs:
         run: python3 .github/scripts/lint_skill_frontmatter.py
       - name: Test skill frontmatter linter
         run: python3 .github/scripts/test_lint_skill_frontmatter.py
+      - name: Test PR description checker
+        run: python3 .github/scripts/test_check_pr_description.py
       - name: Validate FrontierPhysics documentation
         run: python3 .github/scripts/lint_frontierphysics_docs.py
 

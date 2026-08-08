@@ -1,0 +1,34 @@
+name: pr-description
+
+# Task PRs (anything touching tasks/) must follow the PR template, including
+# the form-formatted task information. Runs on `edited` too, so fixing the
+# description re-runs the check without a new push. Non-task PRs are skipped
+# by the script itself.
+on:
+  pull_request:
+    types: [opened, edited, reopened, synchronize]
+
+# The restricted default GITHUB_TOKEN carries contents: read only; listing the
+# PR's files through the API needs pull-requests: read as well.
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: List changed files
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api "repos/${GITHUB_REPOSITORY}/pulls/${{ github.event.pull_request.number }}/files" \
+            --paginate --jq '.[].filename' > "$RUNNER_TEMP/changed_files.txt"
+          echo "Changed files:"
+          sed 's/^/  /' "$RUNNER_TEMP/changed_files.txt"
+      - name: Check task-PR description
+        run: |
+          python3 .github/scripts/check_pr_description.py \
+            --event "$GITHUB_EVENT_PATH" \
+            --changed-files "$RUNNER_TEMP/changed_files.txt"

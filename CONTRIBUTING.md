@@ -188,6 +188,15 @@ The description is part of the submission, not a formality — it is the evidenc
 a reviewer uses to judge provenance and difficulty. Explain the history of the
 task: where this work came from and what it cost you.
 
+The PR template pre-fills every required section, modelled on the reference
+submission [PR #23](https://github.com/benchflow-ai/FrontierPhysics/pull/23) —
+including a **Form-formatted task information** section that carries the same
+answers as the task-contribution Google form, so the two contribution routes
+stay interchangeable ([worked example](https://github.com/benchflow-ai/FrontierPhysics/pull/23#issuecomment-5227575650)).
+CI verifies that task PRs keep every required section: check every checklist
+box, or leave a box unchecked and add a paragraph starting with "Deliberately
+unchecked" explaining why. Non-task PRs are not checked.
+
 Report these three in a table. Each carries a minimum; a submission below any
 of them will not merge.
 

@@ -78,7 +78,7 @@ For every agent run:
 | Reject | Contrived task, leaked answers, invalid oracle, or irreproducible grading |
 
 On merge, record contribution credit from the PR's Credit table: 6 points to the
-task author, 1 point to each reviewer who signed off, and 2 points to the
+task author, 2 points to each reviewer who signed off, and 2 points to the
 referrer if this is the author's first merged task and the table names one.
 Reviewer and referral points are earned only when the task merges, so they are
 awarded at the same time.
