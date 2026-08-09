@@ -57,6 +57,7 @@ Three things:
 
 A task that misses any one of these will not merge.
 
+
 # Two stages, two graders
 Every task is evaluated in two stages, and you write the grader for each:
 
@@ -68,7 +69,9 @@ Every task is evaluated in two stages, and you write the grader for each:
    final results are accurate.
 
 The rubric ships in the task package alongside the verifier; agree on its
-exact placement with a maintainer in your draft PR.
+exact placement with a maintainer in your draft PR. 
+
+We acknowledge that there are some tasks in physics researchers' daily workflow that don't require deep research. For example, rewriting a Python repo in C. If you have this kind of tasks and they are hard enough, you are also welcome to contribute them! They have nearly the same structure as the two-stages tasks, just without the rubric.json file. For more information about the structure of task packages, please refer to the Task Package section below.
 
 # How to contribute
 1. **Ideate**: Pick a project that meets all three. Bring it to group chat or
@@ -87,11 +90,12 @@ back-and-forth, so iterating with a maintainer in a draft is both faster than
 guessing and the only reliable way to merge before the deadline.
 
 # Task Package
-Technically, a task consists of:
+A task with the deep research AND execution sections consists of:
 
 ```text
 tasks/<task-id>/
 ├── task.md
+├── rubric.json
 ├── environment/
 │   ├── Dockerfile
 │   ├── <bundled inputs>
@@ -108,7 +112,7 @@ tasks/<task-id>/
 ```
 ## task.md
 Usually the first file that you write. `task.md` starts with YAML frontmatter, followed by the human-written prompt body.
-The frontmatter carries metadata, timeouts, and resource requirements. The body is the instructions (prompt) for the agents. 
+The frontmatter carries metadata, timeouts, and resource requirements. The body is the instructions (prompt) for the agents. You can write the prompts for both the deep research and execution sections as two parts in one `task.md`.
 
 Here are some rules for writing the prompt:
 - Write by hand in clear, imperative prose.
@@ -116,6 +120,9 @@ Here are some rules for writing the prompt:
 - Use explicit absolute paths for inputs and outputs.
 - Do not mention skill names or tell the agent which skills to use.
 - Anchor a date when the correct answer depends on time-sensitive data.
+
+## rubric.json
+The item-by-item list of rubrics that describe the expectations from the researchers. It mainly focuses on the deep research part that is not verifiable via code scripts. It can include the key papers that the agent should find when doing literature review, key caveats or plans for doing an experiment that the agent should realize, etc.
 
 ## environment/
 As shown above, an `environment/` folder contains the Dockerfile, inputs, and skills. The Dockerfiles create a Docker environment for agents in which it'll work to solve the task. If the task requires inputs (e.g., data, reference, examples, etc.), put these under the environment/inputs/ folder. `environment/skills` contain mentoring skills for agents that help them with the task.
@@ -143,9 +150,11 @@ and derive the answer through computation rather than hardcoding final values.
 For tasks where a hand-authored binary artifact is unavoidable, explain that
 tradeoff in the PR description and keep the artifact in `oracle/`.
 
+Note that this oracle is for the execution part of the task only, the 'answer' to the deep research part is given by `rubric.json`.
+
 ## verifier/
-The verifier checks outcomes and writes a scalar reward to
-`/logs/verifier/reward.txt`.
+The verifier checks the agent's final deliverables.outcomes and writes a scalar reward to
+`/logs/verifier/reward.txt`. It’s mainly for the implementation part of the task.
 
 Verifier rules:
 
