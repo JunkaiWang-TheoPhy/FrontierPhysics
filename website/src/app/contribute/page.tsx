@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { credit, scoringDeadline, site, stages } from "@/lib/site";
+import { credit, site, stages } from "@/lib/site";
 import {
   ArrowUpRight,
   Award,
@@ -158,12 +158,6 @@ export default function Contribute() {
             <p className="text-sm text-muted-foreground leading-relaxed">
               Reviewing opens up once you have your first good task merged — ask
               a maintainer to be added as a reviewer.
-            </p>
-            <p className="text-sm leading-relaxed">
-              <strong className="font-semibold text-foreground">
-                Get tasks merged by {scoringDeadline} to join author list of
-                ICLR 2026
-              </strong>
             </p>
             <p className="text-sm text-muted-foreground leading-relaxed">
               From the team behind{" "}

@@ -71,13 +71,6 @@ export const stages = [
 /** Merged tasks needed to reach co-authorship on authoring alone. */
 export const tasksForAuthorship = credit.authorship / credit.task;
 
-/**
- * Cut-off for points. A task only scores if it is *merged* by this date, not
- * merely opened, which is why the guidance pushes contributors to open a draft
- * early rather than polish in private.
- */
-export const scoringDeadline = "31 August";
-
 export const navItems = [
   { href: "/#tasks", label: "Tasks" },
   { href: "/contribute", label: "Contribute" },
