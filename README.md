@@ -70,7 +70,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for scientific-quality requirements, ment
 - **WeChat**: [Scan QR code](docs/wechat-qr.jpg)
 - **Weekly sync**: Thursday 7PM PT / 10PM ET
 
-Contribution credit is tracked in points: a merged task you authored is worth 6, referring a contributor is worth 2 once their first task merges, a merged task you reviewed is worth 1, and 12 points earns co-authorship on the FrontierPhysics paper and dataset. Reviewing and referring count — see the [authorship policy](CONTRIBUTING.md#authorship-policy).
+Contribution credit is tracked in points: a merged task you authored is worth 6, referring a contributor is worth 2 once their first task merges, a merged task you reviewed is worth 2, and 12 points earns co-authorship on the FrontierPhysics paper and dataset. Reviewing and referring count — see the [authorship policy](CONTRIBUTING.md#authorship-policy).
 
 ## License
 
