@@ -188,7 +188,7 @@ export default function Contribute() {
             </a>
           </Button>
           <Button asChild variant="secondary" className="border border-border">
-            <a href={site.contributing} target="_blank" rel="noopener noreferrer">
+            <a href={site.taskForm} target="_blank" rel="noopener noreferrer">
               Contribute a task
             </a>
           </Button>

@@ -16,7 +16,7 @@ export const site = {
   /** Onboarding form: unlocks the group chats, Google Drive, and GitHub repo. */
   joinForm: "https://forms.gle/BVxbGg8VbHsbpMxi9",
   /** Task form for contributing by co-working with reviewers over email. */
-  taskForm: "https://forms.gle/XTtngjHLfkGCyaBG8",
+  taskForm: "https://forms.gle/v7p1dFAkyLonyjea8",
   contributing:
     "https://github.com/benchflow-ai/FrontierPhysics/blob/main/CONTRIBUTING.md",
   protocol:
