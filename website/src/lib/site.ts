@@ -11,24 +11,15 @@ export const site = {
    */
   origin: "https://www.benchflow.ai",
   url: "https://www.benchflow.ai/frontierphysics",
-  repo: "https://github.com/benchflow-ai/FrontierPhysics",
   discord: "https://discord.gg/G9dg3EfSva",
-  /** Onboarding form: unlocks the group chats, Google Drive, and GitHub repo. */
+  /**
+   * Onboarding form: unlocks the group chats, Google Drive, and GitHub repo.
+   * The task repository is private, so the site never links it directly —
+   * every repo-shaped affordance routes here instead.
+   */
   joinForm: "https://forms.gle/BVxbGg8VbHsbpMxi9",
   /** Task form for contributing by co-working with reviewers over email. */
   taskForm: "https://forms.gle/v7p1dFAkyLonyjea8",
-  contributing:
-    "https://github.com/benchflow-ai/FrontierPhysics/blob/main/CONTRIBUTING.md",
-  protocol:
-    "https://github.com/benchflow-ai/FrontierPhysics/blob/main/docs/benchmark-protocol.md",
-  taxonomy:
-    "https://github.com/benchflow-ai/FrontierPhysics/blob/main/taxonomy.md",
-  tasksTree: "https://github.com/benchflow-ai/FrontierPhysics/tree/main/tasks",
-  /**
-   * Docs are read straight from the repository rather than mirrored here, so
-   * there is only ever one copy to maintain and the site cannot go stale.
-   */
-  docs: "https://github.com/benchflow-ai/FrontierPhysics/tree/main/docs",
   benchflow: "https://github.com/benchflow-ai/benchflow",
   /** Prior work by the same team, cited as evidence the benchmark will ship. */
   skillsbenchPaper: "https://arxiv.org/abs/2602.12670",

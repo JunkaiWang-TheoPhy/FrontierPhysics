@@ -1,7 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { DiscordIcon } from "@/components/BrandIcon";
 import { site } from "@/lib/site";
-import { Github } from "lucide-react";
 import Link from "next/link";
 
 export function Footer() {
@@ -32,24 +31,16 @@ export function Footer() {
                     Contribute a task
                   </Link>
                 </li>
+                {/* The protocol and taxonomy docs live in the private task
+                    repository, so the join form is the public way in. */}
                 <li>
                   <a
-                    href={site.protocol}
+                    href={site.joinForm}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="hover:text-foreground transition-colors"
                   >
-                    Benchmark protocol
-                  </a>
-                </li>
-                <li>
-                  <a
-                    href={site.taxonomy}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="hover:text-foreground transition-colors"
-                  >
-                    Taxonomy
+                    Request repo access
                   </a>
                 </li>
                 <li>
@@ -68,17 +59,6 @@ export function Footer() {
             <div>
               <h4 className="font-semibold mb-4 text-sm">Community</h4>
               <div className="flex gap-2">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  asChild
-                  className="h-9 w-9"
-                  aria-label="GitHub"
-                >
-                  <a href={site.repo} target="_blank" rel="noopener noreferrer">
-                    <Github className="w-5 h-5" aria-hidden="true" />
-                  </a>
-                </Button>
                 <Button
                   variant="ghost"
                   size="icon"

@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { DiscordIcon, FrontierPhysicsLogo } from "@/components/BrandIcon";
 import { cn } from "@/lib/utils";
 import { navItems, site } from "@/lib/site";
-import { Github, Menu, Monitor, Moon, Sun } from "lucide-react";
+import { Menu, Monitor, Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -154,6 +154,9 @@ export function Navbar() {
           </>
         )}
 
+        {/* No GitHub icon here: the task repository is private, so sending
+            visitors to it would only 404. Repo access goes via the join form
+            on the contribute page. */}
         <div className="flex items-center gap-1 border-l border-border/40 pl-2 ml-1">
           <Button
             variant="ghost"
@@ -164,17 +167,6 @@ export function Navbar() {
           >
             <a href={site.discord} target="_blank" rel="noopener noreferrer">
               <DiscordIcon className="w-4 h-4" aria-hidden="true" />
-            </a>
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            asChild
-            className="h-8 w-8"
-            aria-label="GitHub"
-          >
-            <a href={site.repo} target="_blank" rel="noopener noreferrer">
-              <Github className="w-4 h-4" aria-hidden="true" />
             </a>
           </Button>
         </div>

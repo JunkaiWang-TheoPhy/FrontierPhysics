@@ -83,13 +83,14 @@ const SUBMISSION = [
   },
   {
     title: "A local test results report",
-    body: "What you ran and what happened, across multiple trials rather than a single run.",
+    // PR #23 is named without a link: the task repository is private, so the
+    // PR is only reachable once the join form has granted access.
+    body: "What you ran and what happened, across multiple trials rather than a single run. Example task: PR #23 in the task repository.",
     checks: [
       "The oracle passes with reward exactly 1.0",
       "Results for a state-of-the-art agent with skills",
       "Results for the same agent without skills",
     ],
-    example: { label: "Example task: PR #23.", href: `${site.repo}/pull/23` },
   },
 ];
 
@@ -245,25 +246,9 @@ export default function Contribute() {
                 <li className="flex gap-2.5 text-sm">
                   <span className="font-mono text-muted-foreground">2.</span>
                   <span className="text-muted-foreground leading-relaxed">
-                    Send a PR in{" "}
-                    <a
-                      href={site.repo}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-foreground underline underline-offset-4 hover:text-muted-foreground transition-colors"
-                    >
-                      benchflow-ai/FrontierPhysics
-                    </a>{" "}
-                    to add a task, following the{" "}
-                    <a
-                      href={`${site.repo}/pull/23`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-foreground underline underline-offset-4 hover:text-muted-foreground transition-colors"
-                    >
-                      example PR
-                    </a>
-                    .
+                    Send a PR that adds a task to the task repository,
+                    following the example PR #23 there. The repository is
+                    private — the join form in step 01 grants access.
                   </span>
                 </li>
               </ol>
@@ -417,19 +402,6 @@ export default function Contribute() {
                 <h3 className="font-semibold tracking-tight">{item.title}</h3>
                 <p className="text-sm text-muted-foreground leading-relaxed">
                   {item.body}
-                  {item.example ? (
-                    <>
-                      {" "}
-                      <a
-                        href={item.example.href}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-foreground underline underline-offset-4 hover:text-muted-foreground transition-colors"
-                      >
-                        {item.example.label}
-                      </a>
-                    </>
-                  ) : null}
                 </p>
                 {"report" in item && item.report ? (
                   <div className="overflow-x-auto pt-1">

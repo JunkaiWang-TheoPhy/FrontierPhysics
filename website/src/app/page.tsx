@@ -10,7 +10,7 @@ import {
 } from "@/lib/example-task";
 import { credit, site } from "@/lib/site";
 import { getTasks } from "@/lib/tasks";
-import { ArrowRight, ArrowUpRight, Award } from "lucide-react";
+import { ArrowRight, Award } from "lucide-react";
 import Link from "next/link";
 
 export default function Home() {
@@ -50,13 +50,19 @@ export default function Home() {
               <Button asChild>
                 <Link href="/contribute">Contribute a task</Link>
               </Button>
+              {/* The task repository is private, so instead of a GitHub link
+                  this routes to the join form that grants repo access. */}
               <Button
                 asChild
                 variant="secondary"
                 className="border border-border hover:bg-accent transition-colors"
               >
-                <a href={site.repo} target="_blank" rel="noopener noreferrer">
-                  View on GitHub
+                <a
+                  href={site.joinForm}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Request repo access
                 </a>
               </Button>
             </div>
@@ -229,22 +235,15 @@ export default function Home() {
                 {tasks
                   .filter((task) => task.id !== exampleTask.id)
                   .map((task) => (
-                    <a
+                    // Not a link: the tasks live in the private repository,
+                    // so there is no public page to send the reader to.
+                    <div
                       key={task.id}
-                      href={`${site.tasksTree}/${task.id}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="group rounded-2xl border border-border bg-card p-6 space-y-3 hover:border-foreground/25 transition-colors"
+                      className="rounded-2xl border border-border bg-card p-6 space-y-3"
                     >
-                      <div className="flex items-start justify-between gap-3">
-                        <h3 className="font-mono text-sm font-semibold tracking-tight">
-                          {task.id}
-                        </h3>
-                        <ArrowUpRight
-                          className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5"
-                          aria-hidden="true"
-                        />
-                      </div>
+                      <h3 className="font-mono text-sm font-semibold tracking-tight">
+                        {task.id}
+                      </h3>
 
                       <div className="flex flex-wrap gap-1.5">
                         {[task.difficulty, task.subcategory, ...task.taskTypes]
@@ -262,7 +261,7 @@ export default function Home() {
                       <p className="text-sm text-muted-foreground leading-relaxed">
                         {task.summary}
                       </p>
-                    </a>
+                    </div>
                   ))}
               </div>
             )}
