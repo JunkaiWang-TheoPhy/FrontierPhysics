@@ -4,7 +4,7 @@
 # Usage: package_traj.sh <pr_number> <jobs_root> <report_txt> [extra_files...]
 #
 # Layout inside the zip (mirrors the format users see in PR comments,
-# The archive is intended for local preservation or manual PR attachment:
+# e.g. https://github.com/benchflow-ai/skillsbench/pull/560#issuecomment-3789639243):
 #
 #   pr<N>/
 #     report.txt

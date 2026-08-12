@@ -12,9 +12,9 @@
 # Configs (each writes to <jobs_root>/<config>/):
 #   oracle, claude-skills, claude-noskills, codex-skills, codex-noskills
 #
-# Models (required through environment variables, using bare IDs):
-#   CLAUDE_MODEL
-#   CODEX_MODEL
+# Models (override with env, bare IDs — see warning below):
+#   CLAUDE_MODEL  default: claude-opus-4-7
+#   CODEX_MODEL   default: gpt-5.5
 #
 # Auth:
 #   The bench agents support OAuth login (claude-agent-acp via `claude /login`,
@@ -22,10 +22,12 @@
 #   needed — the agents reuse your existing session. Falls back to
 #   ANTHROPIC_API_KEY / OPENAI_API_KEY if set.
 #
-# Verify current model identifiers before a real review:
+# Always re-fetch SOTA model identifiers before a real review:
 #   • Anthropic: https://docs.anthropic.com/en/docs/about-claude/models
 #   • OpenAI:    https://platform.openai.com/docs/models
 #   • Local:     `cat ~/.codex/config.toml` for the user's preferred Codex model.
+#   These defaults reflect 2026-04 SOTA and will go stale.
+#
 # Pass model IDs BARE (no `anthropic/` or `openai/` prefix). bench currently
 # forwards prefixed IDs verbatim and the agent shims reject them. Verified
 # 2026-04-27 against @zed-industries/claude-agent-acp and
@@ -36,12 +38,13 @@ set -euo pipefail
 TASK_DIR="${1:?task dir required}"
 JOBS="${2:?jobs root required}"
 
-CLAUDE_MODEL="${CLAUDE_MODEL:?Set CLAUDE_MODEL to a current bare model ID}"
-CODEX_MODEL="${CODEX_MODEL:?Set CODEX_MODEL to a current bare model ID}"
+CLAUDE_MODEL="${CLAUDE_MODEL:-claude-opus-4-7}"
+CODEX_MODEL="${CODEX_MODEL:-gpt-5.5}"
 
 # Sandbox backend: docker (local) or daytona (cloud microVM, requires
 # DAYTONA_API_KEY). Default docker for fast iteration; switch to daytona for
-# batch reviews, heavy tasks, or literature tasks that need stable egress.
+# batch reviews of many PRs in flight, heavy tasks, or research-track tasks
+# that benefit from stable egress.
 ENV_BACKEND="${BENCH_ENV:-docker}"
 
 # Bench's _format_acp_model passes provider-prefixed IDs straight through to
