@@ -1,4 +1,4 @@
-# Principles of creating high quality agentic tasks that are close to real production work
+# Principles of creating high quality agentic tasks that are close to end-to-end frontier physics research
 
 ## Lifecycle of the task (from the perspective of an agent)
 
