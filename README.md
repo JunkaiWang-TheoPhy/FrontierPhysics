@@ -70,7 +70,18 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for scientific-quality requirements, ment
 - **WeChat**: [Scan QR code](docs/wechat-qr.jpg)
 - **Weekly sync**: Thursday 7PM PT / 10PM ET
 
-Contribution credit is tracked in points: a merged task you authored is worth 6, referring a contributor is worth 2 once their first task merges, a merged task you reviewed is worth 2, and 12 points earns co-authorship on the FrontierPhysics paper and dataset. Reviewing and referring count — see the [authorship policy](CONTRIBUTING.md#authorship-policy).
+### Authorship policy
+
+A merged task earns **6 points**, a referral **2 points** (once the referred contributor merged at least 1 task), a task review **2 points** (once the task has been merged). At **12 points** you are a co-author on the FrontierPhysics paper and dataset. To become a reviewer, make sure you have at least one task merged, then ask a maintainer. Full details: [authorship policy](CONTRIBUTING.md#authorship-policy).
+
+### Timeline
+
+We will submit to **ICLR** first and then submit to *Nature* after further polish.
+
+- **v0.1** — Get tasks merged by **31 August** to join the author list of **ICLR** (and all future paper versions).
+- **v1.0** — Get tasks merged by **31 December** to join the author list of the draft submitted to *Nature*.
+
+Both are deadlines for a task being **merged**, not opened — review and revision take days of back-and-forth, so a PR opened close to a deadline is unlikely to land in time. Open a draft PR early: see the [timeline](CONTRIBUTING.md#timeline).
 
 ## License
 

@@ -32,14 +32,23 @@ Reviewing opens up once you have your first good task merged: authoring one is
 how you demonstrate you can judge someone else's. Ask a maintainer to be added
 as a reviewer.
 
-**Get tasks merged by 31 August to join author list of ICLR 2026** Merged, not
-opened — review and revision take days of back-and-forth, so a PR opened close
-to the deadline is unlikely to land in time.
-
 Points are awarded on merge, not on submission: a review or a referral earns
 its points only once the task behind it is merged. Quality beats quantity — one excellent task
 is worth more than many mediocre ones, and a submission that does not clear the
 bar in [What makes an ideal task](#what-makes-an-ideal-task) earns nothing.
+
+# Timeline
+We will submit to **ICLR** first and then submit to *Nature* after further
+polish.
+
+- **v0.1** — Get tasks merged by **31 August** to join the author list of
+  **ICLR** (and all future paper versions).
+- **v1.0** — Get tasks merged by **31 December** to join the author list of the
+  draft submitted to *Nature*.
+
+Both are deadlines for a task being **merged**, not opened — review and
+revision take days of back-and-forth, so a PR opened close to a deadline is
+unlikely to land in time.
 
 # Who should contribute
 A PhD or current PhD candidate in physics, EECS, or an adjacent field — or
@@ -87,7 +96,8 @@ We acknowledge that there are some tasks in physics researchers' daily workflow 
 Open the PR as a **draft** as soon as you have the task idea and a skeleton —
 do not wait until it is polished. Reviewing and revising a task takes days of
 back-and-forth, so iterating with a maintainer in a draft is both faster than
-guessing and the only reliable way to merge before the deadline.
+guessing and the only reliable way to merge before a [timeline](#timeline)
+deadline.
 
 # Task Package
 A task with the deep research AND execution sections consists of:

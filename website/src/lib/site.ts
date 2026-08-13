@@ -42,6 +42,60 @@ export const credit = {
 } as const;
 
 /**
+ * A run of copy where the dates and venue names are emphasised. Storing them
+ * as data rather than as hand-written markup keeps each sentence readable in
+ * one piece here — these are the exact sentences of the policy — while still
+ * letting the page bold a deadline or italicise a journal title.
+ */
+export type Emphasis = {
+  text: string;
+  /** Journal titles are set in italics as well as bold. */
+  journal?: boolean;
+};
+export type Sentence = readonly (string | Emphasis)[];
+
+/**
+ * Publication timeline, mirrored from CONTRIBUTING.md#timeline. Both dates are
+ * deadlines for a task being *merged*, not opened, which is why every surface
+ * that shows them also tells contributors to open a draft PR early.
+ */
+export const timeline: {
+  summary: Sentence;
+  /** `version` is the paper version that deadline closes the author list for. */
+  milestones: readonly { version: string; sentence: Sentence }[];
+} = {
+  summary: [
+    "We will submit to ",
+    { text: "ICLR" },
+    " first and then submit to ",
+    { text: "Nature", journal: true },
+    " after further polish.",
+  ],
+  milestones: [
+    {
+      version: "v0.1",
+      sentence: [
+        "Get tasks merged by ",
+        { text: "31 August" },
+        " to join the author list of ",
+        { text: "ICLR" },
+        " (and all future paper versions).",
+      ],
+    },
+    {
+      version: "v1.0",
+      sentence: [
+        "Get tasks merged by ",
+        { text: "31 December" },
+        " to join the author list of the draft submitted to ",
+        { text: "Nature", journal: true },
+        ".",
+      ],
+    },
+  ],
+};
+
+/**
  * Every task is graded in two stages, mirrored from
  * CONTRIBUTING.md#two-stages-two-graders. The author ships a grader for each:
  * a planning rubric for the first stage, the verifier for the second.

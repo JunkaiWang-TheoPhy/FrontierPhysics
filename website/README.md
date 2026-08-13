@@ -40,9 +40,10 @@ src/
     Footer.tsx
     HeroBackground.tsx # animated atom field + vignette behind the hero
     Atoms.tsx         # canvas atom lattice, drifting diagonally
+    Timeline.tsx      # the two authorship deadlines, shared by both pages
     ui/button.tsx
   lib/
-    site.ts           # every external link, plus the authorship point values
+    site.ts           # every external link, plus the authorship points and deadlines
     tasks.ts          # reads ../tasks/*/task.md at build time
 ```
 

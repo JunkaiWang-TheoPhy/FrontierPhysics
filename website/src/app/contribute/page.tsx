@@ -1,3 +1,4 @@
+import { Timeline } from "@/components/Timeline";
 import { Button } from "@/components/ui/button";
 import { credit, site, stages } from "@/lib/site";
 import {
@@ -189,6 +190,10 @@ export default function Contribute() {
           </Button>
         </div>
       </header>
+
+      {/* Directly under the credit card, in the same order as the authorship
+          policy in CONTRIBUTING.md: what you earn, then by when. */}
+      <Timeline className="mb-20" />
 
       <section id="get-started" className="scroll-mt-28 space-y-6 mb-20">
         <h2 className="text-2xl font-bold tracking-tight text-center">

@@ -2,6 +2,7 @@ import { ContributorLogos } from "@/components/ContributorLogos";
 import { HeroBackground } from "@/components/HeroBackground";
 import { ResearchLoop } from "@/components/ResearchLoop";
 import { TaskFileTree } from "@/components/TaskFileTree";
+import { Timeline } from "@/components/Timeline";
 import { Button } from "@/components/ui/button";
 import {
   exampleTask,
@@ -267,6 +268,12 @@ export default function Home() {
             )}
           </section>
 
+          {/* Narrower than the task cards above it: this is prose, and the
+              full width of the grid would leave the lines hard to track. */}
+          <Timeline
+            className="max-w-3xl mx-auto"
+            headingClassName="text-2xl sm:text-3xl"
+          />
         </div>
       </main>
     </div>
