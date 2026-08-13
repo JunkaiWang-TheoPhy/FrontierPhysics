@@ -1,8 +1,6 @@
 # FrontierPhysics
 
-Public benchmark for advanced physics research tasks. The primary metric is
-agent pass rate without skills; the with-skills condition is a solvability
-control.
+The end-to-end physics discovery benchmark for agents.
 
 ## Commands
 
@@ -27,37 +25,26 @@ tasks/<task-id>/
   task.md
   environment/
     Dockerfile
-    skills/
   oracle/
     solve.sh
   verifier/
+    rubric.json # This is the human written guidance for 
     test.sh
     test_outputs.py
 ```
 
 ## Rules
 
-- Tasks must represent authentic advanced-physics work and preserve source
-  provenance.
-- `task.md` prompt bodies and oracle logic must be human-authored.
-- Prompts describe outcomes and must not mention skill names.
+- Tasks must represent authentic advanced-physics work.
+- [IMPORTANT] Read `.agents/skills/task-review/goodtask-frontierphysics.md` first before doing anything.
+- `task.md` prompt bodies, rubric.json, oracle logic must be human-authored.
+- Prompts describe outcomes and must not mention any specific skills or direct source of answer.
 - Verifiers check scientific outcomes, not which tools or skills were used.
-- Every submitted task includes one or more mentor skills.
-- Mentor skills may be task-specific, prescriptive recipes.
-- Mentor skills may bundle scripts, references, and derived intermediate
-  assets, but must not hardcode final answers, expose verifier assertions, or
-  bypass the requested scientific computation.
+- Skills are not required, but if you want to include skills, they may bundle scripts, references, and derived intermediate assets, but must not hardcode final answers, expose verifier assertions, or bypass the requested scientific computation.
 - Oracle must pass with reward `1.0`.
-- At least one strong current agent must be shown to solve the task with skills
-  before merge. No-skill failures are benchmark results, not automatic task
-  failures.
-- Keep primary reporting centered on no-skill pass rate. Report with-skill
-  results separately as a control.
 
 ## References
 
 - [CONTRIBUTING.md](CONTRIBUTING.md)
-- [MAINTAINER.md](MAINTAINER.md)
-- [docs/benchmark-protocol.md](docs/benchmark-protocol.md)
 - [taxonomy.md](taxonomy.md)
 - [.agents/skills/task-review/](.agents/skills/task-review/)

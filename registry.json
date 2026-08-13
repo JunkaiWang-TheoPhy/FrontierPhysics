@@ -3,9 +3,7 @@
     "name": "frontierphysics",
     "version": "0.1-dev",
     "description": "FrontierPhysics development snapshot.",
-    "bench_version": ">=0.6.3,<0.7",
-    "primary_condition": "no-skill",
-    "control_condition": "with-skill",
+    "bench_version": ">=0.6.7,<0.7",
     "tasks": [
       {
         "name": "surface-ion-trap-shuttling",
