@@ -46,6 +46,10 @@ Running hosted agents may require provider credentials or an authenticated local
 
 ### Creating Tasks
 
+Not sure what to propose? See the [task ideation guide](docs/task-ideation.md) for
+the kinds of research subproblems that make good tasks, with idea-level examples
+across experimental and theoretical domains.
+
 FrontierPhysics tasks are native BenchFlow `task.md` packages:
 
 ```text

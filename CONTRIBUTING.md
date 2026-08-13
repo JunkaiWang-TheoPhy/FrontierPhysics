@@ -84,7 +84,9 @@ We acknowledge that there are some tasks in physics researchers' daily workflow 
 
 # How to contribute
 1. **Ideate**: Pick a project that meets all three. Bring it to group chat or
-   confirm with a maintainer before you build.
+   confirm with a maintainer before you build. See the
+   [task ideation guide](docs/task-ideation.md) for the kinds of research
+   subproblems that make good tasks.
 2. **Create**: Implement the task package, including the planning rubric. See
    `Task Package` below.
 3. **Test**: Run the oracle, then run a state-of-the-art agent with and
