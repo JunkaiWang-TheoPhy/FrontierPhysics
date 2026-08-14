@@ -1,14 +1,28 @@
 # About FrontierPhysics
-FrontierPhysics evaluates how agents help with Physics research. Specifically, we turn day-to-day work in physics labs into tasks for agents. By observing agents' performance in tackling these tasks, with and without skills, we can get insights into agents' capability and shortcomings in solving Physics research tasks, and the data can be used to improve agents' ability. 
+**FrontierPhysics**: Evaluate agents for end-to-end frontier physics research.
 
-To achieve this, we need contributors from the broad Physics community to add diverse, authetic, challenging, and well-tested task packages. 
+FrontierPhysics is a benchmark evaluating how AI agents do **frontier physics research iteratively**. We evaluate realistic research challenges with iteration loops from **literature deep review** to **research plan implementation**. Tasks come from real research problems that take at least **weeks of effort** for a physics PhD to do deep research and implement, and SOTA LLM agents **struggle** with. The tasks are evaluated with verifiable graders and per-task rubric-based reviewer agents to make sure agents are doing research in ways **aligned with real frontier researchers**.
+
+To achieve this, we need contributors from the broad Physics community to add diverse, authetic, challenging, and well-tested task packages.
+
+**Domains**:
+1. Experimental research
+2. Theoretical research
+3. Numerical-simulation/data-analyzing-intense research
+
+When doing research, a typical loop is: from **research & planning** -> to **implementation & experiment** -> to **evaluation & feedback**. For theoretical / numerical simulation / data-analyzing-intense research etc. this is feasible as long as the agent does not need to interact with real world. But for the experimental / engineering-application physics tasks, if we cannot run real world experiment, we can handle it in 2 ways: 
+
+1. Use digital version of device simulation and mock API to simulate how that device would work: like https://github.com/benchflow-ai/env0 and make sure the device simulation is realistic and obey physics laws.
+2. If the whole experiment simulation is too challenging, since the first stage of the task is more about research & planning, we focus on using rubrics (rubric.json) + LLM agent as judge to focus more on evaluation of the experiment planning; device/instrument shopping list planning; etc.
 
 **Links**: 
 [Website] (https://www.benchflow.ai/frontierphysics)  
-[Github] (https://github.com/benchflow-ai/FrontierPhysics.git)  
+[Github] (https://github.com/benchflow-ai/FrontierPhysics.git)
 [BenchFlow CLI] (https://github.com/benchflow-ai/benchflow)  
 [SkillsBench Paper] (https://arxiv.org/abs/2602.12670)  
 [Discord] (https://discord.gg/G9dg3EfSva)
+
+Fill in https://forms.gle/eZk26ffY6tfECeCk9 for access to Google Drive and GitHub.
 
 # Authorship policy
 Contribution credit is tracked in points, and **12 points earns co-authorship**
@@ -20,86 +34,54 @@ on the FrontierPhysics paper and dataset.
 | A contributor you referred gets their first task merged | 2 |
 | A task you reviewed is merged | 2 |
 
-Points accumulate across all three kinds of work, so two merged tasks reaches
-12, and so does any mix that adds up — one merged task, a referral, and four
-reviews, for example.
+Points accumulate across all three kinds of work, so two merged tasks reaches 12, and so does any mix that adds up — one merged task, a referral, and four reviews, for example.
 
-A referral means bringing someone new to the project. It scores once per
-person, when their first authored task merges — have them name you in that
-PR's description so the maintainers know who to credit.
+A referral means bringing someone new to the project. It scores once per person, when their first authored task merges — have them name you in that PR's description so the maintainers know who to credit.
 
-Reviewing opens up once you have your first good task merged: authoring one is
-how you demonstrate you can judge someone else's. Ask a maintainer to be added
-as a reviewer.
+Reviewing opens up once you have your first good task merged: authoring one is how you demonstrate you can judge someone else's. Ask a maintainer to be added as a reviewer.
 
-Points are awarded on merge, not on submission: a review or a referral earns
-its points only once the task behind it is merged. Quality beats quantity — one excellent task
-is worth more than many mediocre ones, and a submission that does not clear the
-bar in [What makes an ideal task](#what-makes-an-ideal-task) earns nothing.
+Points are awarded on merge, not on submission: a review or a referral earns its points only once the task behind it is merged. Quality beats quantity — one excellent task is worth more than many mediocre ones, and a submission that does not clear the bar in [What makes an ideal task](#what-makes-an-ideal-task) earns nothing.
 
 # Timeline
-We will submit to **ICLR** first and then submit to *Nature* after further
-polish.
+We will submit to **ICLR** first and then submit to **Nature** later.
 
 - **v0.1** — Get tasks merged by **31 August** to join the author list of
   **ICLR** (and all future paper versions).
-- **v1.0** — Get tasks merged by **31 December** to join the author list of the
-  draft submitted to *Nature*.
+- **v1.0** — Get tasks merged by **31 December** to join the author list of the draft submitted to **Nature**
 
-Both are deadlines for a task being **merged**, not opened — review and
-revision take days of back-and-forth, so a PR opened close to a deadline is
-unlikely to land in time.
+Both are deadlines for a task being **merged**, not opened — review and revision take days of back-and-forth, so a PR opened close to a deadline is unlikely to land in time.
 
 # Who should contribute
-A PhD or current PhD candidate in physics, EECS, or an adjacent field — or
-someone with extensive hands-on experience in a physics lab or an equivalent
-industry role.
+A PhD or current PhD candidate in physics, EECS, or an adjacent field — or someone with extensive hands-on experience in a physics lab or an equivalent industry role.
 
 # What makes an ideal task
 Three things:
 
-1. **Your own work.** Real research you personally carried out, not a problem
-   invented for the benchmark.
-2. **Two weeks or more.** It took you at least two weeks of genuine effort,
-   with or without an LLM agent helping.
+1. **Your own work.** Real research you personally carried out, not a problem invented for the benchmark.
+2. **Two weeks or more.** It took you at least two weeks of genuine effort, with or without an LLM agent helping.
 3. **Verifiable.** The result is right or wrong, and a script can tell which.
 
 A task that misses any one of these will not merge.
 
+# Two stages for each task
+When doing research, a typical loop is: from **research & planning** -> to **implementation & experiment** -> to **evaluation & feedback**. While **evaluation & feedback** from real world experiment may be not feasible in experimental cases, we need to include **research & planning** and **implementation & experiment** as 2 "must-have" parts in each task.
 
-# Two stages, two graders
 Every task is evaluated in two stages, and you write the grader for each:
 
-1. **Deep research.** The agent studies the problem and commits to a research
-   plan. A planning rubric you author grades that plan — the physics that must
-   be modelled, the approximations that are defensible, the checks that catch
-   a wrong turn early.
-2. **Execution.** The agent carries the plan out. The verifier checks that the
-   final results are accurate.
+1. **Deep research.** The agent studies the problem and commits to a research plan. A planning rubric you author grades that plan — the physics that must be modelled, the approximations that are defensible, the checks that catch a wrong turn early.
+2. **Execution.** The agent carries the plan out. The verifier checks that the final results are accurate.
 
-The rubric ships in the task package alongside the verifier; agree on its
-exact placement with a maintainer in your draft PR. 
+The rubric ships in the task package alongside the verifier; agree on its exact placement with a maintainer in your draft PR. 
 
 We acknowledge that there are some tasks in physics researchers' daily workflow that don't require deep research. For example, rewriting a Python repo in C. If you have this kind of tasks and they are hard enough, you are also welcome to contribute them! They have nearly the same structure as the two-stages tasks, just without the rubric.json file. For more information about the structure of task packages, please refer to the Task Package section below.
 
 # How to contribute
-1. **Ideate**: Pick a project that meets all three. Bring it to group chat or
-   confirm with a maintainer before you build. See the
-   [task ideation guide](docs/task-ideation.md) for the kinds of research
-   subproblems that make good tasks.
-2. **Create**: Implement the task package, including the planning rubric. See
-   `Task Package` below.
-3. **Test**: Run the oracle, then run a state-of-the-art agent with and
-   without skills, over multiple trials.
-4. **Submit**: Fork this repository and open a draft PR against `main` here
-   as soon as the shape is there, then iterate with a maintainer. See
-   [The final submission](#the-final-submission).
+1. **Ideate**: Pick a project that meets all three. Bring it to group chat or confirm with a maintainer before you build. See the [task ideation guide](docs/task-ideation.md) for the kinds of research subproblems that make good tasks.
+2. **Create**: Implement the task package, including the planning rubric. See `Task Package` below.
+3. **Test**: Run the oracle, then run a state-of-the-art agent with and without skills, over multiple trials.
+4. **Submit**: Fork this repository and open a draft PR against `main` here as soon as the shape is there, then iterate with a maintainer. See [The final submission](#the-final-submission).
 
-Open the PR as a **draft** as soon as you have the task idea and a skeleton —
-do not wait until it is polished. Reviewing and revising a task takes days of
-back-and-forth, so iterating with a maintainer in a draft is both faster than
-guessing and the only reliable way to merge before a [timeline](#timeline)
-deadline.
+Open the PR as a **draft** as soon as you have the task idea and a skeleton — do not wait until it is polished. Reviewing and revising a task takes days of back-and-forth, so iterating with a maintainer in a draft is both faster than guessing and the only reliable way to merge before a [timeline](#timeline) deadline.
 
 # Task Package
 A task with the deep research AND execution sections consists of:
@@ -107,11 +89,10 @@ A task with the deep research AND execution sections consists of:
 ```text
 tasks/<task-id>/
 ├── task.md
-├── rubric.json
 ├── environment/
 │   ├── Dockerfile
 │   ├── <bundled inputs>
-│   └── skills/
+│   └── skills/   # Not necessary to have
 │       └── <skill-name>/
 │           ├── SKILL.md
 │           ├── references/
@@ -119,6 +100,7 @@ tasks/<task-id>/
 ├── oracle/
 │   └── solve.sh
 └── verifier/
+    ├── rubric.json
     ├── test.sh
     └── test_outputs.py
 ```
@@ -178,20 +160,14 @@ Verifier rules:
 
 # Task Quality Rubric
 
-Every PR is evaluated against the [task-review skill](.agents/skills/task-review/).
-Reviewers look for:
+Every PR is evaluated against the [task-review skill](.agents/skills/task-review/). Reviewers look for:
 
-- **Authenticity**: real scenario, real data where possible, human-authored task
-  prompt and oracle.
+- **Authenticity**: real scenario, real data where possible, human-authored task prompt and oracle.
 - **Skill quality**: accurate, reusable, useful beyond this task.
-- **Verification**: deterministic, outcome-based, anti-cheat aware, covering
-  both stages — the planning rubric and the execution verifier.
+- **Verification**: deterministic, outcome-based, anti-cheat aware, covering both stages — the planning rubric and the execution verifier.
 - **Instructions**: concise, fair, no skill hints.
 - **Environment**: reproducible Docker image, pinned deps, no leaked skills.
-- **Complexity**: clears every minimum in
-  [A detailed PR description](#2-a-detailed-pr-description) — two weeks, 40
-  working hours, 10 hours to reproduce — and agents without skills are
-  likely to fail it.
+- **Complexity**: clears every minimum in [A detailed PR description](#2-a-detailed-pr-description) — two weeks, 40 working hours, 10 hours to reproduce — and agents without skills are likely to fail it.
 
 # The final submission
 
@@ -199,27 +175,15 @@ Every task submission consists of three things.
 
 ## 1. A PR from your fork
 
-Fork this repository, push your task to a branch on your fork, and open a pull
-request against `main` here. One task per PR, and the PR should touch only
-files under `tasks/<task-id>/`.
+Fork this repository, push your task to a branch on your fork, and open a pull request against `main` here. One task per PR, and the PR should touch only files under `tasks/<task-id>/`.
 
 ## 2. A detailed PR description
 
-The description is part of the submission, not a formality — it is the evidence
-a reviewer uses to judge provenance and difficulty. Explain the history of the
-task: where this work came from and what it cost you.
+The description is part of the submission, not a formality — it is the evidence a reviewer uses to judge provenance and difficulty. Explain the history of the task: where this work came from and what it cost you.
 
-The PR template pre-fills every required section, modelled on the reference
-submission [PR #23](https://github.com/benchflow-ai/FrontierPhysics/pull/23) —
-including a **Form-formatted task information** section that carries the same
-answers as the task-contribution Google form, so the two contribution routes
-stay interchangeable ([worked example](https://github.com/benchflow-ai/FrontierPhysics/pull/23#issuecomment-5227575650)).
-CI verifies that task PRs keep every required section: check every checklist
-box, or leave a box unchecked and add a paragraph starting with "Deliberately
-unchecked" explaining why. Non-task PRs are not checked.
+The PR template pre-fills every required section, modelled on the reference submission [PR #23](https://github.com/benchflow-ai/FrontierPhysics/pull/23) — including a **Form-formatted task information** section that carries the same answers as the task-contribution Google form, so the two contribution routes stay interchangeable ([worked example](https://github.com/benchflow-ai/FrontierPhysics/pull/23#issuecomment-5227575650)). CI verifies that task PRs keep every required section: check every checklist box, or leave a box unchecked and add a paragraph starting with "Deliberately unchecked" explaining why. Non-task PRs are not checked.
 
-Report these three in a table. Each carries a minimum; a submission below any
-of them will not merge.
+Report these three in a table. Each carries a minimum; a submission below any of them will not merge.
 
 | Report | Minimum | Example |
 |---|---|---|
@@ -227,43 +191,27 @@ of them will not merge.
 | Actual working hours spent exploring the task | 40 hours | approximately 60 hours |
 | Estimated hours for a first-year PhD to reproduce the results | 10 hours | approximately 15 hours |
 
-The third is a backward estimate, not a measurement: assume a capable
-first-year PhD student in the field, already given the task prompt and data,
-and estimate how long reproducing your results would take them. It is the best
-single proxy for whether the task is substantial enough to be worth grading.
+The third is a backward estimate, not a measurement: assume a capable first-year PhD student in the field, already given the task prompt and data, and estimate how long reproducing your results would take them. It is the best single proxy for whether the task is substantial enough to be worth grading.
 
-Also state what the original work was and whether an LLM agent helped, and on
-which parts. Give real dates and an honest hour count — a task that took you
-two days is not a fit, and saying so early saves everyone a review cycle.
+Also state what the original work was and whether an LLM agent helped, and on which parts. Give real dates and an honest hour count — a task that took you two days is not a fit, and saying so early saves everyone a review cycle.
 
-Also cover the scientific motivation: what physics the task exercises, who does
-this kind of work, and where the data or model came from — with citations and
-license provenance for anything you did not produce yourself.
+Also cover the scientific motivation: what physics the task exercises, who does this kind of work, and where the data or model came from — with citations and license provenance for anything you did not produce yourself.
 
 ## 3. A local test results report
 
 Before you open the PR, confirm all of these locally:
 
 1. `bench tasks check tasks/<task-id>` passes.
-2. `bench eval run --tasks-dir tasks/<task-id> --agent oracle --sandbox docker`
-   passes with reward 1.0.
-3. A state-of-the-art agent has been run both with and without skills,
-   over multiple trials.
-4. The task prompt, oracle, skills, tests, and metadata are ready for human
-   review.
+2. `bench eval run --tasks-dir tasks/<task-id> --agent oracle --sandbox docker` passes with reward 1.0.
+3. A state-of-the-art agent has been run both with and without skills, over multiple trials.
+4. The task prompt, oracle, skills, tests, and metadata are ready for human review.
 
 Then report what you actually ran:
 
 - oracle result, showing reward 1.0;
-- a table of agent runs — agent, model, with-skill and no-skill pass rates over
-  multiple trials, not a single run;
-- failure analysis: whether failures came from scientific reasoning,
-  environment or tooling, instructions, formatting, or verifier behaviour;
+- a table of agent runs — agent, model, with-skill and no-skill pass rates over multiple trials, not a single run;
+- failure analysis: whether failures came from scientific reasoning, environment or tooling, instructions, formatting, or verifier behaviour;
 - artifacts for any multimodal or binary outputs;
-- anything you discovered while building it that a reviewer or future
-  contributor should know — a leaky environment, a brittle tolerance, a metric
-  that turned out uninformative.
+- anything you discovered while building it that a reviewer or future contributor should know — a leaky environment, a brittle tolerance, a metric that turned out uninformative.
 
-Report the runs you completed. If you ran out of credits partway through a
-trial set, say so and report what finished; partial evidence honestly labelled
-is worth more than a padded table.
+Report the runs you completed. If you ran out of credits partway through a trial set, say so and report what finished; partial evidence honestly labelled is worth more than a padded table.

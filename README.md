@@ -6,13 +6,18 @@
 
 Are AI agents good physicists?
 
-**FrontierPhysics**: Benchmark how AI agents do frontier physics research.
+**FrontierPhysics**: Evaluate agents for end-to-end frontier physics research.
 
-**[Contributing](CONTRIBUTING.md)** · **[Benchmark Protocol](docs/benchmark-protocol.md)** · **[BenchFlow SDK](https://github.com/benchflow-ai/benchflow)** · **[Discord](https://discord.gg/G9dg3EfSva)**
+**[Contributing](CONTRIBUTING.md)** · **[BenchFlow SDK](https://github.com/benchflow-ai/benchflow)** · **[Discord](https://discord.gg/G9dg3EfSva)**
 
 ## What is FrontierPhysics?
 
 FrontierPhysics is a benchmark evaluating how AI agents do **frontier physics research iteratively**. We evaluate realistic research challenges with iteration loops from **literature deep review** to **research plan implementation**. Tasks come from real research problems that take at least **weeks of effort** for a physics PhD to do deep research and implement, and SOTA LLM agents **struggle** with. The tasks are evaluated with verifiable graders and per-task rubric-based reviewer agents to make sure agents are doing research in ways **aligned with real frontier researchers**.
+
+When doing research, a typical loop is: from **research & planning** -> to **implementation & experiment** -> to **evaluation & feedback**. For theoretical / simulation-based / data-analyzing-intense research etc. this is feasible as long as the agent does not need to interact with real world. But for the experimental / engineering-application physics tasks, if we cannot run real world experiment, we can handle it in 2 ways: 
+
+1. Use digital version of device simulation and mock API to simulate how that device would work: like https://github.com/benchflow-ai/env0 and make sure the device simulation is realistic and obey physics laws.
+2. If the whole experiment simulation is too challenging, since the first stage of the task is more about research & planning, we focus on using rubrics (rubric.json) + LLM agent as judge to focus more on evaluation of the experiment planning; device/instrument shopping list planning; etc.
 
 ## Quick Start
 
@@ -38,8 +43,6 @@ bench eval run \
 
 Runnable benchmark tasks live under `tasks/`. FrontierPhysics uses `uv.lock` for reproducible repository tooling while the `bench` CLI runs task validation and evaluations.
 
-See [experiments/README.md](experiments/README.md) for paired no-skill and with-skill commands.
-
 ### API Keys
 
 Running hosted agents may require provider credentials or an authenticated local agent session. Export only the credentials required by the selected agent. Keep secrets in an ignored `.env` or `.envrc`; never commit them.
@@ -57,16 +60,18 @@ tasks/<task-id>/
   task.md
   environment/
     Dockerfile
-    skills/
+    skills/   # If need any
   oracle/
     solve.sh
   verifier/
-    rubric.json
+    rubric.json   # For LLM as judge
     test.sh
     test_outputs.py
 ```
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for scientific-quality requirements, mentor-skill policy, metadata, validation, and review evidence.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for scientific-quality requirements, metadata, validation, and review evidence.
+
+Read [goodtask-frontierphysics.md](.agents/skills/task-review/goodtask-frontierphysics.md) to have a better understanding about what is the definition of a "good-task".
 
 ## Get Involved
 
