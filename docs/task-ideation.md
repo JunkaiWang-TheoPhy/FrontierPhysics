@@ -2,13 +2,18 @@
 
 ## What Kind of Tasks Are We Looking For?
 
-A FrontierPhysics task does **not** need to reproduce an entire research project or make an end-to-end scientific discovery.
+**FrontierPhysics**: Evaluate agents for end-to-end frontier physics research.
 
-Real research is made of many difficult subproblems: running a simulation, analyzing detector data, reproducing a published calculation, designing part of an experiment, testing a hypothesis, or developing a reliable numerical workflow.
+FrontierPhysics is a benchmark evaluating how AI agents do **frontier physics research iteratively**. We evaluate realistic research challenges with iteration loops from **literature deep review** to **research plan implementation**. Tasks come from real research problems that take at least **weeks of effort** for a physics PhD to do deep research and implement, and SOTA LLM agents **struggle** with. The tasks are evaluated with verifiable graders and per-task rubric-based reviewer agents to make sure agents are doing research in ways **aligned with real frontier researchers**. To achieve this, we need contributors from the broad Physics community to add diverse, authetic, challenging, and well-tested task packages.
 
-**Any such subproblem can be a good FrontierPhysics task if it is a real, challenging, and verifiable piece of physics research.**
+When doing research, a typical loop is: from **research & planning** -> to **implementation & experiment** -> to **evaluation & feedback**. In this loop, real research is made of many difficult subproblems: running a simulation, analyzing detector data, reproducing a published calculation, designing part of an experiment, testing a hypothesis, or developing a reliable numerical workflow.
 
-For example, the surface-ion-trap task extracts a computational chain from a larger trapped-ion experiment: trap-field simulation, secular-frequency calculation, ion-chain equilibrium, and transport waveform design. The EMS black-hole task instead focuses on a difficult numerical spectroscopy problem where completeness, artifact rejection, and mode tracking are central to getting the physics right.
+A FrontierPhysics task wants to reproduce an entire research project or make an end-to-end scientific discovery. That is the dream but we have to face the reality that when dealing with real world, the **research & planning** -> to **implementation & experiment** -> to **evaluation & feedback** loop can be broken if agent cannot operate real world experiment devices and get feedback signals for its actions. In these cases, especially in experimental physics domains
+
+1. Use digital version of device simulation and mock API to simulate how that device would work: like https://github.com/benchflow-ai/env0 and make sure the device simulation is realistic and obey physics laws.
+2. If the whole experiment simulation is too challenging, since the first stage of the task is more about research & planning, we focus on using rubrics (rubric.json) + LLM agent as judge to focus more on evaluation of the experiment planning; device/instrument shopping list planning; etc.
+
+**A project that you have done can be a good FrontierPhysics task if it is a real, challenging, and verifiable end to end physics research.**
 
 The examples below are intentionally **idea-level**. You do not need to define the exact environment, verifier, tolerances, or output schema at this stage. Those details can be worked out later with agents and maintainers.
 
@@ -16,7 +21,7 @@ The examples below are intentionally **idea-level**. You do not need to define t
 
 ### 1. Literature, Theory, and Reproduction
 
-Tasks may involve understanding prior work, reproducing a published result, extending it to a new regime, or carrying out a theoretical calculation.
+Tasks may involve understanding prior work, reproducing a published result (allow agent to access the internet but block the paper access that have the direct answer to this task), extending it to a new regime, or carrying out a theoretical calculation.
 
 **Experimental Physics**
 
@@ -125,8 +130,4 @@ A promising task is:
 * **Challenging** — it requires meaningful physics reasoning, iteration, or methodological choices.
 * **Verifiable** — there is a credible way to determine whether the result is scientifically correct.
 
-It does **not** need to be an entire paper or an end-to-end discovery.
-
-A detector simulation, a calibration analysis, a PCB needed for an experiment, a theoretical calculation, or a reproduction of a published result can all be excellent FrontierPhysics tasks.
-
-**Start from the science first. The exact benchmark specification can come later.**
+A detector simulation, a calibration analysis, a PCB needed for an experiment, a theoretical calculation, or a reproduction of a published result can all be excellent FrontierPhysics tasks ideas.
