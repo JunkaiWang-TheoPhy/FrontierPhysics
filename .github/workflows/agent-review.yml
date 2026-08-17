@@ -156,6 +156,10 @@ jobs:
           # Temporary while stabilizing the rollout: surface Claude's output in
           # the job log so failures are diagnosable. Remove once stable.
           show_full_output: true
+          # track_progress makes the action create the tracking comment up
+          # front; without it the comment MCP tool fails with
+          # "CLAUDE_COMMENT_ID environment variable is required".
+          track_progress: true
           use_sticky_comment: true
           prompt: |
             Follow the review instructions in .github/agent-review/prompt.md
