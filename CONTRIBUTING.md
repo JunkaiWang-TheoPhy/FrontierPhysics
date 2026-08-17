@@ -215,3 +215,37 @@ Then report what you actually ran:
 - anything you discovered while building it that a reviewer or future contributor should know — a leaky environment, a brittle tolerance, a metric that turned out uninformative.
 
 Report the runs you completed. If you ran out of credits partway through a trial set, say so and report what finished; partial evidence honestly labelled is worth more than a padded table.
+
+# Automated first-pass review
+
+Every task PR receives an automated first-pass review before human review
+begins. Once the functional static checks pass (task package structure, task
+metadata, skill frontmatter), a review agent reads the task package and the PR
+description and posts a single comment on the PR with two parts:
+
+- **Blockers** — findings with objective, statically checkable criteria:
+  package completeness, missing submission evidence, prompt–verifier
+  misalignment, trust-boundary violations, answer leakage, resource
+  overclaims. Each cites the file and the standard it violates.
+- **Notes for the human reviewer** — non-binding scientific observations and
+  questions meant to guide the expert review, not to decide it.
+
+Address every blocker and push; the comment updates in place on each push,
+and also when you edit the PR description — the description carries required
+evidence (local runs, provenance, the effort table), so updating it alone is
+enough to be re-reviewed. Human science review starts once the comment
+reports no blockers, so clearing it early saves you a review cycle. The
+review is advisory: it never labels, approves, or blocks a PR on its own,
+and maintainers may override any finding.
+
+The review never runs on draft PRs, so open your PR as a draft while you are
+still iterating and mark it ready when you want the first pass. To push to a
+ready PR without triggering a re-review, include `[skip agent-review]` in the
+head commit message; it applies until the next commit without the marker.
+
+The standards it applies are in
+[.github/agent-review/review-standards.md](.github/agent-review/review-standards.md),
+distilled from past PR review history and consistent with the
+[task-review skill](.agents/skills/task-review/) that the full human review
+runs — there is no second bar to guess at. Running your task against those
+documents yourself before opening the PR is the fastest route through review.

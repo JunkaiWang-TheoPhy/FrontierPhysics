@@ -1,0 +1,161 @@
+name: agent-review
+
+# First-pass LLM review of task PRs. It reviews only what is statically
+# checkable — blockers with objective criteria plus non-binding observations
+# for the human science reviewer — and its sole action is posting one sticky
+# PR comment. It never labels, approves, or gates. Scope and comment format
+# live in .github/agent-review/prompt.md; the standards it applies live in
+# .github/agent-review/review-standards.md.
+#
+# Runs on pull_request_target so fork PRs (the normal contribution route per
+# CONTRIBUTING.md) run with repository secrets available. That event carries
+# an elevated token, so nothing from the PR head is ever executed: scripts and
+# prompts come from the trusted base checkout, the PR tree is data only, and
+# the review agent gets read-only tools (no Bash, no Write, no network tools).
+#
+# The review runs only after the functional static checks pass (task package
+# structure, task metadata, skill frontmatter). Documentation linters are
+# deliberately not gates (see issue #81) — their output is captured and handed
+# to the reviewer as non-blocking context instead.
+
+# Triggering: every push to a non-draft task PR re-runs the review (that is
+# the loop that lets authors clear blockers), and `edited` re-runs it when the
+# PR description changes, since the description carries required submission
+# evidence (local runs, provenance, effort table). Frequency controls: draft
+# PRs are never reviewed (iterate there freely), superseded runs are cancelled
+# per PR, and a head commit message containing [skip agent-review] opts that
+# head out entirely.
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened, ready_for_review, edited]
+    paths: ["tasks/**"]
+
+concurrency:
+  group: agent-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+jobs:
+  review:
+    if: ${{ !github.event.pull_request.draft }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out base branch (trusted scripts and prompts)
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Check out PR head (untrusted, data only)
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: pr-head
+          persist-credentials: false
+
+      - name: Check for review opt-out
+        id: optout
+        run: |
+          msg=$(git -C pr-head log -1 --format=%B)
+          if grep -qF '[skip agent-review]' <<< "$msg"; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::Head commit message contains [skip agent-review]; review skipped for this head. It applies until a new commit is pushed without the marker."
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Replace PR-head validators with trusted base copies
+        if: steps.optout.outputs.skip != 'true'
+        # The linters locate the repo root from their own file path, so the
+        # base-branch scripts are dropped into the head checkout to make them
+        # validate the PR tree while running only trusted code. The PR's own
+        # script versions are kept aside as data (never executed) so the
+        # reviewer can check registry consistency in them.
+        run: |
+          mv pr-head/.github/scripts pr-head-scripts-as-submitted
+          cp -R .github/scripts pr-head/.github/scripts
+
+      - uses: actions/setup-python@v5
+        if: steps.optout.outputs.skip != 'true'
+        with:
+          python-version: "3.12"
+      - name: Install PyYAML (task.md frontmatter parsing)
+        if: steps.optout.outputs.skip != 'true'
+        run: python3 -m pip install pyyaml
+
+      - name: Functional static checks (gate for the LLM review)
+        if: steps.optout.outputs.skip != 'true'
+        id: gate
+        # validate_repository.py is deliberately not a gate: its EXPECTED_TASKS
+        # allowlist is hardcoded, so the trusted base copy always rejects a PR
+        # that adds a new task. It runs as an advisory check instead, and the
+        # reviewer statically checks registry consistency.
+        run: |
+          status=0
+          python3 pr-head/.github/scripts/validate_tasks.py pr-head/tasks || status=1
+          python3 pr-head/.github/scripts/lint_skill_frontmatter.py || status=1
+          if [ "$status" -ne 0 ]; then
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Functional static checks failed; the LLM review is skipped until they pass. See the ci workflow for details."
+          else
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Advisory checks (non-blocking, shown to the reviewer)
+        if: steps.gate.outputs.ok == 'true'
+        run: |
+          {
+            echo "## validate_repository.py (base copy — 'tasks/ must match' errors are expected when the PR adds a new task)"
+            python3 pr-head/.github/scripts/validate_repository.py 2>&1 || true
+            echo
+            echo "## lint_frontierphysics_docs.py"
+            python3 pr-head/.github/scripts/lint_frontierphysics_docs.py 2>&1 || true
+            echo
+            echo "## lint_taxonomy.py"
+            python3 pr-head/.github/scripts/lint_taxonomy.py 2>&1 || true
+          } > advisory_checks.txt
+          cat advisory_checks.txt
+
+      - name: Collect PR context
+        if: steps.gate.outputs.ok == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api "repos/${GITHUB_REPOSITORY}/pulls/${{ github.event.pull_request.number }}/files" \
+            --paginate --jq '.[].filename' > changed_files.txt
+          jq '{number: .pull_request.number,
+               title: .pull_request.title,
+               author: .pull_request.user.login,
+               head_sha: .pull_request.head.sha,
+               body: .pull_request.body}' \
+            "$GITHUB_EVENT_PATH" > pr_meta.json
+
+      - name: LLM first-pass review
+        if: steps.gate.outputs.ok == 'true'
+        env:
+          # Maintainers the review mentions when a PR reaches the no-blocker
+          # state (ready for human science review). Space-separated @handles.
+          READY_MENTIONS: "@yuema137 @bingran-you @wenjun-ke"
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          # Default workflow token; remove this input if the Claude GitHub App
+          # gets installed on the repository.
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          use_sticky_comment: true
+          prompt: |
+            Follow the review instructions in .github/agent-review/prompt.md
+            for pull request #${{ github.event.pull_request.number }}.
+            Maintainers to mention if and only if there are no blockers:
+            ${{ env.READY_MENTIONS }}
+          claude_args: |
+            --model claude-opus-5
+            --max-turns 100
+            --allowedTools "Read,Grep,Glob,mcp__github_comment__update_claude_comment"
+            --disallowedTools "Bash,Write,Edit,NotebookEdit,WebFetch,WebSearch,Task"
