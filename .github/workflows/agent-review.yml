@@ -156,18 +156,39 @@ jobs:
           # Temporary while stabilizing the rollout: surface Claude's output in
           # the job log so failures are diagnosable. Remove once stable.
           show_full_output: true
-          # track_progress makes the action create the tracking comment up
-          # front; without it the comment MCP tool fails with
-          # "CLAUDE_COMMENT_ID environment variable is required".
-          track_progress: true
-          use_sticky_comment: true
           prompt: |
             Follow the review instructions in .github/agent-review/prompt.md
             for pull request #${{ github.event.pull_request.number }}.
             Maintainers to mention if and only if there are no blockers:
             ${{ env.READY_MENTIONS }}
+          # The comment is not posted by the agent: it writes review-comment.md
+          # and the next step publishes it, so posting works on every trigger
+          # type (the action's own comment plumbing does not cover `edited`).
           claude_args: |
             --model claude-opus-5
             --max-turns 100
-            --allowedTools "Read,Grep,Glob,mcp__github_comment__update_claude_comment"
-            --disallowedTools "Bash,Write,Edit,NotebookEdit,WebFetch,WebSearch,Task"
+            --allowedTools "Read,Grep,Glob,Write"
+            --disallowedTools "Bash,Edit,NotebookEdit,WebFetch,WebSearch,Task"
+
+      - name: Post review comment (sticky by marker)
+        if: steps.gate.outputs.ok == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          if [ ! -s review-comment.md ]; then
+            echo "::error::The review agent did not produce review-comment.md"
+            exit 1
+          fi
+          marker='<!-- frontierphysics-agent-review -->'
+          printf '%s\n\n' "$marker" > comment-body.md
+          cat review-comment.md >> comment-body.md
+          cid=$(gh api "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments" --paginate \
+            --jq "[.[] | select(.body | startswith(\"$marker\"))][0].id // empty")
+          if [ -n "$cid" ]; then
+            gh api -X PATCH "repos/${GITHUB_REPOSITORY}/issues/comments/$cid" -F "body=@comment-body.md" > /dev/null
+            echo "Updated sticky comment $cid"
+          else
+            gh api "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments" -F "body=@comment-body.md" > /dev/null
+            echo "Created sticky comment"
+          fi
