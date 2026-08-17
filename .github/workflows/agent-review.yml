@@ -2,9 +2,11 @@ name: agent-review
 
 # First-pass LLM review of task PRs. It reviews only what is statically
 # checkable — blockers with objective criteria plus non-binding observations
-# for the human science reviewer — and its sole action is posting one sticky
-# PR comment. It never labels, approves, or gates. Scope and comment format
-# live in .github/agent-review/prompt.md; the standards it applies live in
+# for the human science reviewer — and posts one sticky PR comment. It never
+# approves or gates. The agent itself never labels either: the workflow
+# deterministically syncs a "ready for human review" label from the reported
+# blocker count. Scope and comment format live in
+# .github/agent-review/prompt.md; the standards it applies live in
 # .github/agent-review/review-standards.md.
 #
 # Runs on pull_request_target so fork PRs (the normal contribution route per
@@ -171,6 +173,7 @@ jobs:
             --disallowedTools "Bash,Edit,NotebookEdit,WebFetch,WebSearch,Task"
 
       - name: Post review comment (sticky by marker)
+        id: post
         if: steps.gate.outputs.ok == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
@@ -191,4 +194,29 @@ jobs:
           else
             gh api "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments" -F "body=@comment-body.md" > /dev/null
             echo "Created sticky comment"
+          fi
+
+      - name: Sync ready-for-human-review label
+        # Deterministic, workflow-side labeling — the review agent itself never
+        # labels. The label is applied when the posted review reports zero
+        # blockers, and removed when blockers reappear or the functional gate
+        # fails, so it cannot go stale. When the review itself failed to run,
+        # the label is left untouched (state unknown).
+        if: always() && steps.optout.outputs.skip != 'true' && (steps.gate.outputs.ok == 'false' || steps.post.outcome == 'success')
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          LABEL='ready for human review'
+          ready=false
+          if [ "${{ steps.gate.outputs.ok }}" = "true" ] \
+             && grep -qE '^\*\*Blockers: 0\*\*' review-comment.md; then
+            ready=true
+          fi
+          if [ "$ready" = "true" ]; then
+            gh pr edit "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --add-label "$LABEL"
+            echo "Label applied"
+          else
+            gh pr edit "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --remove-label "$LABEL" || true
+            echo "Label absent or removed"
           fi

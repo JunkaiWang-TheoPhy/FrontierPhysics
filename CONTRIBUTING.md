@@ -233,8 +233,10 @@ description and posts a single comment on the PR with two parts:
 Address every blocker and push; the comment updates in place on each push,
 and also when you edit the PR description — the description carries required
 evidence (local runs, provenance, the effort table), so updating it alone is
-enough to be re-reviewed. Human science review starts once the comment
-reports no blockers, so clearing it early saves you a review cycle. The
+enough to be re-reviewed. When the review reports zero blockers, the workflow
+applies the `ready for human review` label (and removes it again if blockers
+reappear). Human science review starts once the comment reports no blockers,
+so clearing it early saves you a review cycle. The
 review is advisory: it never labels, approves, or blocks a PR on its own,
 and maintainers may override any finding.
 
