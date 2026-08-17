@@ -148,6 +148,9 @@ jobs:
           # Default workflow token; remove this input if the Claude GitHub App
           # gets installed on the repository.
           github_token: ${{ secrets.GITHUB_TOKEN }}
+          # Temporary while stabilizing the rollout: surface Claude's output in
+          # the job log so failures are diagnosable. Remove once stable.
+          show_full_output: true
           use_sticky_comment: true
           prompt: |
             Follow the review instructions in .github/agent-review/prompt.md
