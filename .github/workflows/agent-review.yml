@@ -144,7 +144,12 @@ jobs:
           READY_MENTIONS: "@yuema137 @bingran-you @wenjun-ke"
         uses: anthropics/claude-code-action@v1
         with:
+          # Either credential works; set exactly one as a repository secret.
+          # ANTHROPIC_API_KEY: a Console API key (sk-ant-api...), billed to the
+          # org's API account. CLAUDE_CODE_OAUTH_TOKEN: a `claude setup-token`
+          # OAuth token (sk-ant-oat...), billed to that user's subscription.
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           # Default workflow token; remove this input if the Claude GitHub App
           # gets installed on the repository.
           github_token: ${{ secrets.GITHUB_TOKEN }}
