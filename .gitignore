@@ -230,3 +230,4 @@ frontierphysics-trajectories/
 .vite
 .env.local
 .vercel/_deps/
+/outputs
