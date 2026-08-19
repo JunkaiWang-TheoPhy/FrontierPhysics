@@ -33,16 +33,14 @@ def _valid_sections() -> dict[str, str]:
             "| Actual working hours spent exploring the task | 40 hours | 100 hours |\n"
         ),
         "Task": "| Field | Value |\n|---|---|\n| Task ID | `demo-task` |\n",
-        "Form-formatted task information": form,
-        "Mentor skill summary": "One method skill; no final answers or verifier internals.",
-        "Checklist": "- [x] `task.md` prompt body is human-authored and outcome-focused\n",
+        "Form-formatted task information for human reviewers": form,
+        "Checklist": "- [x] `task.md` prompt body is concise, human-authored and outcome-focused\n",
         "Local test results": (
-            "| Agent | Model | Reasoning | No skill (primary) | With skills (control) | Time |\n"
+            "| Agent | Model | Reasoning | No skill (primary) | With skills (optional) | Time |\n"
             "|---|---|---|---:|---:|---:|\n"
             "| codex-acp | gpt | high | 0/2 | 2/2 | 30m |\n"
         ),
         "Failure analysis": "The no-skill run approximated the field solve.",
-        "What you learned building it": "The radial tolerance is the brittle one.",
         "Artifacts": "Oracle output and verifier logs attached.",
         "Credit": "| Role | GitHub handle(s) |\n|---|---|\n| Author | @demo-author |\n",
     }
@@ -76,9 +74,9 @@ class CheckTaskPrDescription(unittest.TestCase):
 
     def test_missing_form_subsection(self) -> None:
         sections = _valid_sections()
-        sections["Form-formatted task information"] = sections["Form-formatted task information"].replace(
-            "### Deep-research prompt", "### Renamed"
-        )
+        sections["Form-formatted task information for human reviewers"] = sections[
+            "Form-formatted task information for human reviewers"
+        ].replace("### Deep-research prompt", "### Renamed")
         self.assertProblem(cpd.check(TITLE, _body(sections)), '"### Deep-research prompt"')
 
     def test_task_history_requires_both_dates(self) -> None:
@@ -108,7 +106,7 @@ class CheckTaskPrDescription(unittest.TestCase):
     def test_results_table_needs_a_data_row(self) -> None:
         sections = _valid_sections()
         sections["Local test results"] = (
-            "| Agent | Model | Reasoning | No skill (primary) | With skills (control) | Time |\n"
+            "| Agent | Model | Reasoning | No skill (primary) | With skills (optional) | Time |\n"
             "|---|---|---|---:|---:|---:|\n"
             "| | | | | | |\n"
         )

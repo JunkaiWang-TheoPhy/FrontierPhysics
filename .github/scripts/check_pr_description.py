@@ -27,12 +27,10 @@ REQUIRED_H2 = (
     "Motivation",
     "Task history",
     "Task",
-    "Form-formatted task information",
-    "Mentor skill summary",
+    "Form-formatted task information for human reviewers",
     "Checklist",
     "Local test results",
     "Failure analysis",
-    "What you learned building it",
     "Artifacts",
     "Credit",
 )
