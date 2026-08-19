@@ -4,12 +4,6 @@
     "version": "0.1-dev",
     "description": "FrontierPhysics development snapshot.",
     "bench_version": ">=0.6.7,<0.7",
-    "tasks": [
-      {
-        "name": "surface-ion-trap-shuttling",
-        "path": "tasks/surface-ion-trap-shuttling",
-        "digest": "sha256:9418e2ab7d2539980bbb5ef25873cc47931ed07f5e205b87e49f016386bbd388"
-      }
-    ]
+    "tasks": []
   }
 ]

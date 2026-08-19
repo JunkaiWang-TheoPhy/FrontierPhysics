@@ -4,10 +4,9 @@
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-EXPECTED_TASKS = (
-    "surface-ion-trap-shuttling",
-)
+EXPECTED_TASKS = ()
 VENDORED_SNAPSHOTS = (ROOT / "website" / "public" / "example-task",)
+
 
 def main() -> int:
     problems: list[str] = []
