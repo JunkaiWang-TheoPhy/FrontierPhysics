@@ -156,7 +156,7 @@ why — the CI check requires one or the other. -->
 
 Report multiple trials per condition, not a single run. If a trial set was cut short, say so and report what finished. Record the harness and version, exact model identifiers, reasoning effort, task commit, and sandbox limits so the runs are reproducible.
 
-| Agent | Model | Reasoning | No skill (primary) | With skills (control) | Time |
+| Agent | Model | Reasoning | No skill (primary) | With skills (optional) | Time |
 |---|---|---|---:|---:|---:|
 | | | | | | |
 
