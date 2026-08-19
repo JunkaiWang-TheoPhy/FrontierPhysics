@@ -7,10 +7,10 @@ The end-to-end physics discovery benchmark for agents.
 ```bash
 uv tool install --upgrade benchflow
 uv sync --locked
-bench tasks check tasks/surface-ion-trap-shuttling
-bench eval run --tasks-dir tasks/surface-ion-trap-shuttling --agent oracle --sandbox docker
-bench eval run --tasks-dir tasks/surface-ion-trap-shuttling --agent codex-acp --model <model> --skill-mode no-skill --sandbox docker
-bench eval run --tasks-dir tasks/surface-ion-trap-shuttling --agent codex-acp --model <model> --skill-mode with-skill --skills-dir tasks/surface-ion-trap-shuttling/environment/skills/ --sandbox docker
+bench tasks check tasks/multiplexing-ion-chain-qnet
+bench eval run --tasks-dir tasks/multiplexing-ion-chain-qnet --agent oracle --sandbox docker
+bench eval run --tasks-dir tasks/multiplexing-ion-chain-qnet --agent codex-acp --model <model> --skill-mode no-skill --sandbox docker
+# with-skill runs: pass --skill-mode with-skill --skills-dir <skills-dir> for tasks that ship environment/skills/
 uv run python .github/scripts/validate_repository.py
 uv run python .github/scripts/validate_tasks.py tasks
 uv run python .github/scripts/lint_taxonomy.py

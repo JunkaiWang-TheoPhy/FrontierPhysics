@@ -1,12 +1,14 @@
 "use client";
 
 import type { TreeNode } from "@/lib/example-task";
+import { CodeLines, MarkdownView, isMarkdown } from "@/components/TaskFileView";
 import {
   ArrowLeft,
   ChevronRight,
   File,
   Folder,
   FolderOpen,
+  WrapText,
 } from "lucide-react";
 import { useRef, useState } from "react";
 
@@ -14,7 +16,7 @@ import { useRef, useState } from "react";
 const ASSET_BASE = `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/example-task`;
 
 /** Formats without a text preview; everything else opens in the viewer. */
-const BINARY_EXTENSIONS = [".npz", ".stl", ".png"];
+const BINARY_EXTENSIONS = [".npz", ".stl", ".png", ".npy", ".h5"];
 
 type FileView =
   | { path: string; status: "loading" }
@@ -45,6 +47,8 @@ export function TaskFileTree({
     () => new Set(defaultOpen),
   );
   const [view, setView] = useState<FileView | null>(null);
+  const [wrap, setWrap] = useState(true);
+  const [mdMode, setMdMode] = useState<"preview" | "code">("preview");
   const viewPathRef = useRef<string | null>(null);
   const cache = useRef(new Map<string, string>());
 
@@ -61,6 +65,7 @@ export function TaskFileTree({
 
   const openFile = (path: string) => {
     viewPathRef.current = path;
+    setMdMode("preview");
 
     if (BINARY_EXTENSIONS.some((ext) => path.endsWith(ext))) {
       setView({ path, status: "binary" });
@@ -115,6 +120,47 @@ export function TaskFileTree({
               {rootLabel}
               <span className="text-foreground">{view.path}</span>
             </span>
+            <span className="ml-auto flex shrink-0 items-center gap-1.5">
+              {isMarkdown(view.path) && (
+                <span
+                  className="inline-flex overflow-hidden rounded-md border border-border"
+                  role="group"
+                  aria-label="Markdown view mode"
+                >
+                  {(["preview", "code"] as const).map((mode) => (
+                    <button
+                      key={mode}
+                      type="button"
+                      onClick={() => setMdMode(mode)}
+                      aria-pressed={mdMode === mode}
+                      className={`px-2 py-1 cursor-pointer capitalize transition-colors ${
+                        mdMode === mode
+                          ? "bg-accent text-foreground"
+                          : "bg-muted text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      {mode}
+                    </button>
+                  ))}
+                </span>
+              )}
+              {(!isMarkdown(view.path) || mdMode === "code") && (
+                <button
+                  type="button"
+                  onClick={() => setWrap((w) => !w)}
+                  aria-pressed={wrap}
+                  title={wrap ? "Disable word wrap" : "Enable word wrap"}
+                  className={`inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 cursor-pointer transition-colors ${
+                    wrap
+                      ? "bg-accent text-foreground"
+                      : "bg-muted text-muted-foreground hover:bg-accent hover:text-foreground"
+                  }`}
+                >
+                  <WrapText className="h-3.5 w-3.5" aria-hidden="true" />
+                  Wrap
+                </button>
+              )}
+            </span>
           </>
         ) : (
           <span className="px-1 py-1">{rootLabel}</span>
@@ -122,7 +168,7 @@ export function TaskFileTree({
       </div>
 
       {view ? (
-        <FileContent view={view} />
+        <FileContent view={view} wrap={wrap} mdMode={mdMode} />
       ) : (
         <div className="max-h-[480px] overflow-y-auto p-2">
           <TreeLevel
@@ -138,7 +184,15 @@ export function TaskFileTree({
   );
 }
 
-function FileContent({ view }: { view: FileView }) {
+function FileContent({
+  view,
+  wrap,
+  mdMode,
+}: {
+  view: FileView;
+  wrap: boolean;
+  mdMode: "preview" | "code";
+}) {
   if (view.status !== "ready") {
     const message = {
       loading: "Loading…",
@@ -152,22 +206,14 @@ function FileContent({ view }: { view: FileView }) {
     );
   }
 
-  const lines = view.text.split("\n");
+  const renderMarkdown = isMarkdown(view.path) && mdMode === "preview";
   return (
-    <div className="max-h-[480px] overflow-auto">
-      <pre className="px-2 py-3 font-mono text-xs leading-5 text-foreground/90">
-        {lines.map((line, i) => (
-          <div key={i} className="flex">
-            <span
-              className="w-10 shrink-0 pr-3 text-right text-muted-foreground/50 select-none"
-              aria-hidden="true"
-            >
-              {i + 1}
-            </span>
-            <span className="whitespace-pre">{line}</span>
-          </div>
-        ))}
-      </pre>
+    <div className="max-h-[560px] overflow-auto">
+      {renderMarkdown ? (
+        <MarkdownView text={view.text} />
+      ) : (
+        <CodeLines text={view.text} path={view.path} wrap={wrap} />
+      )}
     </div>
   );
 }

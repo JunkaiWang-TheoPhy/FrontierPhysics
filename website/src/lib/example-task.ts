@@ -4,14 +4,14 @@ import fs from "node:fs";
 import path from "node:path";
 
 /**
- * The showcased example task, vendored as a snapshot of PR #23
- * (benchflow-ai/FrontierPhysics#23) so the site can show the package before —
- * and independently of — the PR merging. The file list lives in
- * `src/data/example-task-files.json`, and the viewable file contents under
- * `public/example-task/`; metadata mirrors the task.md frontmatter.
+ * The showcased example task, vendored as a snapshot of the
+ * multiplexing-ion-chain-qnet package so the site renders it independently of
+ * branch state. The file list lives in `src/data/example-task-files.json`,
+ * and the viewable file contents under `public/example-task/`; metadata
+ * mirrors the task.md frontmatter. Regenerate both when the task changes.
  */
 export const exampleTask = {
-  id: "surface-ion-trap-shuttling",
+  id: "multiplexing-ion-chain-qnet",
   difficulty: "hard",
   subcategory: "trapped-ions",
   taskTypes: ["calculation", "simulation", "optimization"],
@@ -120,7 +120,7 @@ export interface TreeNode {
 }
 
 /** Bulky asset mirrors that stay closed in the browser view. */
-const LOCKED_DIRS = new Set(["oracle/assets", "verifier/assets"]);
+const LOCKED_DIRS = new Set(["oracle/assets", "environment/g2_data"]);
 
 interface MutableDir {
   dirs: Map<string, MutableDir>;

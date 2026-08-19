@@ -32,11 +32,11 @@ uv tool install --upgrade benchflow
 uv sync --locked
 
 # Validate a native task.md package.
-bench tasks check tasks/surface-ion-trap-shuttling
+bench tasks check tasks/multiplexing-ion-chain-qnet
 
 # Oracle must pass before agent runs.
 bench eval run \
-  --tasks-dir tasks/surface-ion-trap-shuttling \
+  --tasks-dir tasks/multiplexing-ion-chain-qnet \
   --agent oracle \
   --sandbox docker
 ```

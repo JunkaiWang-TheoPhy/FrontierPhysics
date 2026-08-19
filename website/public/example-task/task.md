@@ -15,6 +15,7 @@ metadata:
   - scientific-data
   - 3d-model
   - csv
+  - pdf
   interface:
   - terminal
   - python
@@ -32,14 +33,14 @@ metadata:
   - inverse-engineering
 verifier:
   type: test-script
-  timeout_sec: 900.0
+  timeout_sec: 600.0
   service: main
   pytest_plugins:
   - ctrf
   hardening:
     cleanup_conftests: true
 agent:
-  timeout_sec: 3600.0
+  timeout_sec: 7200.0
 sandbox:
   network_mode: public
   build_timeout_sec: 1200.0
@@ -50,40 +51,31 @@ sandbox:
   gpus: 0
 ---
 
-1. Research
+1. Research & Plan
 
 We are using trapped ions as qubits to build quantum networks. We want to have a 100km fiber between 2 trapped ion nodes (one down hill another up hill) with at least 50km distance. The scheme we use is heralded scheme for building remote entanglement between trapped ion qubits.
 
-If we want to have high enough rate of building entanglement, help me to research on what would be the dominant time budge / bottleneck other than loss in fiber. For solving that issue, what would be a good solution if you have a chain of ions in each trapped ion node. What if we can move the ions around. Do deep research and find some possible schemes that you think is promising. Find 3-5 possible schemes so we can brainstorm.
+If we want to have high enough rate of building entanglement, help me to research on what would be the dominant time budge / bottleneck other than loss in fiber. For solving that issue, what would be a good solution if you have a chain of ions in each trapped ion node. What if we can move the ions around. Do deep research and find 3-5 possible schemes that you think are promising, then pick one for us.
 
-In our experiment setup, we use a glass echoed surface trap in each trapped ion node. In each trapped ion 40Ca+ node we can trap 2-10 ions chain. Unfortunately the chamber is under vacuum right now and we could not add more parts in it (so we only have a trap in it and nothing else). Lasers setup is in free space and we use DC and RF electrodes to confine the ions. For getting 397nm photons from ions as a POC, how this experiment should be designed; what are the tools we should use to simulate the trap potential; how to calculate the ion-ion spacing; how to design the shuttling function if we want to move the ions chain with as low as possible motional heating in the end, possibly with inverse engineering method. In the future to avoid loss in fiber what is the wavelength we should use and how to achieve that. I want you to do research and answer these questions.
+In our experiment setup, we use a glass echoed surface trap in each trapped ion node. In each trapped ion 40Ca+ node we can trap 2-10 ions chain. Lasers setup is in free space. Key things to figure out: design the experiment for getting 397nm photons from ions as a POC; how to simulate the trap potential; how to design the shuttling function with as low as possible motional heating; in the future to avoid loss in fiber what is the wavelength we should use and how to achieve that. All these should be discussed in final paper.
 
-For all the related papers you find when doing literature research and final experiment you designed, make a plan file called `PLAN.md` for me to review in the current workspace. The file should be concise and clear.
+2. Experiment & Implementation
 
-2. Implementation
+`/root/surface_trap.stl` is the trap model. Simulate the radial trap frequency for a charged 40Ca+ ion when an 80 V RF amplitude at 39.15 MHz is applied to the RF (the "2-rail" electrode in the center; treat all other electrodes as ground). Anisotropy parameter `α = (W_axial_freq / W_radial_freq)^2 = 0.00121`.
 
-In `/root/surface_trap.stl` you have a trap model file for a surface ion trap (surface Paul trap). You need to simulate and calculate the trap frequency along the radial direction for a singly charged `40Ca+` ion when an 80 V RF amplitude at 39.15 MHz is applied to the RF electrode. The RF electrode is the "2-rail" electrode in the center and you can treat other electrodes as ground to do the simulation for the radial trap frequency calculation. (Axial is defined as the direction along the 2-rail RF electrode in the center, and radial means the direction parallel to the trap surface and perpendicular to the RF electrode.) Note it down in MHz as number `W_radial_freq`.
+For a single ion, design the trap-center shuttling function for harmonic transport at 10 m/s over 100 um using the inverse-engineering method, so the ion arrives with essentially zero residual motional excitation.
 
-After getting `W_radial_freq`, based on the standard Mathieu differential equation, use the anisotropy parameter `α = (W_axial_freq / W_radial_freq)^2 = 0.00174` to calculate the axial trap frequency. Note it down in MHz as number `W_axial_freq`.
+Extend to a 9-ion chain at same axial confinement. Based on the ion-ion spacings, build the complete shuttling function that walks the chain past our fixed single-ion addressing beam. The first ion starts at the beam. Each move takes 10 us and shifts the chain to the next ion, and after every move the trap dwells for 1 us so we address that ion, 88 us total. Every ion must be addressed cold: below 1 quantum in the chain's center-of-mass mode (effective mass 9m) during each dwell.
 
-Now imagine we are shuttling a one-ion chain along the axial direction. What is the ideal shuttling function if we do harmonic transport at 10 m/s and move a distance of 100 um? Give the trap-center shuttling function obtained using the inverse-engineering method.
+DC electrodes sit behind sealed in-vacuum RC filters we cannot change: first-order low-pass, 100 kHz; the trap center follows the filtered control, output starting settled at the first sample. Predict the filter's effect on `2.csv` and report it as `n_com_filtered`: the residual excitation of the chain's center-of-mass mode (9 ions, effective mass 9m) in quanta, measured against the instantaneous filtered trap center at the final sample. Repeat the same prediction for 2 to 20 us moves (1 us steps, 1 us dwells) in `3.csv`. Then design the control we actually program, `4.csv`: after the filter it must still park the trap at each cumulative spacing during every dwell and keep each addressed ion below 1 COM quantum at each dwell's end. Report `attempt_rate_hz`: the maximum attempt rate of one emitter when each attempt waits for the herald over 100 km of total fiber path at 2.0e8 m/s.
 
-Then we expand this into a 9-ion chain of singly charged `40Ca+` ions, and we want to first calculate the equilibrium ion-ion spacing of the whole chain with the given axial trap frequency. Note down 8 positive spacing distances in um: `d1`, `d2`, `d3`, `d4`, ..., `d8`.
+Start running the experiment. This multiplexed ion-chain serves as a single photon source and we use 2 PMTs to measure the second order correlation function. The time tagger correlation histograms are in `/root/g2_data`: for each addressed ion i there are `{i}_final_result_left/right/center_ion_data.npy` counts with matching `{i}_index_*.npy`. Our ARTIQ records, including the Rabi flops, are under `/root/artiq_results`. Make plots in the final paper for g2(n), and save g2(0). Each time we open 1.7 µs pulse time and you can try different time filtering (no smaller than 16ns, pick the one with lowest g2(0)). Also we run rabi flop for 9 ions chain to measure motional state excitation after shuttling. Write down n_excitation.
 
-With the ion-ion spacing numbers, we can start shuttling the ion chain step by step. I want to find the final shuttling function from beginning to the end. The whole process is: I have a static single-ion addressing beam that does not move. At the beginning the first ion in the chain is sitting at the addressing beam. Then the ion chain starts to move step by step, dwelling for 1 us after each move, until the final ion is addressed. Each shuttling move is 10 us, and for each shuttling stage I want to use the same inverse-engineered shuttling form. Give me the final shuttling function.
+3. Deliverables
 
-In the end you should output `/root/result.md`. Use the following key-value format, with frequencies in MHz and distances in um:
+- `/root/paper.pdf`: the paper draft for you to wrap up this research project and send out for peer review. Components: abstract; introduction; methods; results; discussion; references. Coherent research story.
+- `/root/result.md`: key-value lines, frequencies in MHz, distances in um, rate in Hz (at least 3 decimal places), g2(0), n_excitation. Template: `/root/result_template.md`.
 
-```md
-W_radial_freq: <number>
-W_axial_freq: <number>
-d1: <number>
-...
-d7: <number>
-d8: <number>
-```
-
-Also output `/root/1.csv` and `/root/2.csv`, each with exactly 10,000 sampling points plus a header row.
-
-In `1.csv` (the first shuttling function for a single ion) and `2.csv` (the complete shuttling function for the 9-ion chain), the first column is time in us and the second column is the center position of the trap potential along the axial direction in um.
+- `/root/1.csv` (the single-ion move, 0 to 10 us), `/root/2.csv` (the ideal 9-ion sequence, 0 to 88 us), and `/root/4.csv` (the compensated control to program, same span and grid as `2.csv`): a `time_us,position_um` header plus exactly 10,000 uniformly spaced samples including both endpoints, written with at least 4 decimal places; the second column is the trap-center (for `4.csv`: control) position along the axial direction.
+- `/root/3.csv`: a `move_us,quanta` header plus 19 rows for move durations 2, 3, ..., 20 us, at least 4 decimal places.
 
