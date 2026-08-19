@@ -7,8 +7,6 @@ import "prismjs/components/prism-json";
 import "prismjs/components/prism-yaml";
 import "prismjs/components/prism-docker";
 import "prismjs/components/prism-markdown";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
 import "./TaskFileView.css";
 
 /** Prism grammar per file, by basename or extension; null renders plain. */
@@ -27,10 +25,6 @@ export function languageFor(path: string): string | null {
     ".toml": "yaml",
   };
   return byExt[ext] ?? null;
-}
-
-export function isMarkdown(path: string): boolean {
-  return path.endsWith(".md");
 }
 
 interface Run {
@@ -127,14 +121,5 @@ export function CodeLines({
         </div>
       ))}
     </pre>
-  );
-}
-
-/** GitHub-style rendered markdown, typeset with the site's theme tokens. */
-export function MarkdownView({ text }: { text: string }) {
-  return (
-    <div className="task-markdown px-5 py-4 text-sm leading-6">
-      <ReactMarkdown remarkPlugins={[remarkGfm]}>{text}</ReactMarkdown>
-    </div>
   );
 }
