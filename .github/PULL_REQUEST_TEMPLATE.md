@@ -55,6 +55,12 @@ long reproducing your results would take them. -->
 | Deliverables | The exact files the agent must produce |
 | Verifier | e.g. 4 outcome tests plus a 7-criterion rubric graded by a reviewer agent |
 
+| Rubrics | Evidence/Reference |
+|---|---|
+| rubric-1 | reference paper / materials for rubric-1 |
+| rubric-2 | reference paper / materials for rubric-2 |
+| ... | ... |
+
 ## Form-formatted task information for human reviewers
 
 <!-- This section is the task-contribution form, inlined: each subsection maps
