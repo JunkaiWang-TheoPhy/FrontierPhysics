@@ -7,13 +7,11 @@ on:
   pull_request:
     paths:
       - "website/**"
-      - "tasks/**/task.md"
       - ".github/workflows/website.yml"
   push:
     branches: [main]
     paths:
       - "website/**"
-      - "tasks/**/task.md"
       - ".github/workflows/website.yml"
 
 jobs:
@@ -23,8 +21,6 @@ jobs:
       run:
         working-directory: website
     steps:
-      # Full checkout, not sparse: the task cards are generated from
-      # ../tasks/*/task.md at build time.
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
@@ -37,14 +33,19 @@ jobs:
         run: npm run lint
       - name: Build
         run: npm run build
-      - name: Confirm the task cards were generated
-        # A silent regression here would ship an empty task list rather than
-        # failing the build, so assert the real task ids made it into the HTML.
+      - name: Confirm the example task rendered
+        # The site shows exactly one example task, vendored under
+        # public/example-task/. A silent regression here would ship a homepage
+        # without it rather than failing the build, so assert the id declared
+        # in src/lib/example-task.ts made it into the HTML.
         run: |
-          for task in $(ls ../tasks); do
-            if ! grep -rq "$task" .next/server/app/index.html; then
-              echo "::error::task '$task' is missing from the rendered page"
-              exit 1
-            fi
-          done
-          echo "All $(ls ../tasks | wc -l | tr -d ' ') task cards rendered."
+          task=$(grep -oP 'id: "\K[^"]+' src/lib/example-task.ts)
+          if [ -z "$task" ]; then
+            echo "::error::could not read the example task id from src/lib/example-task.ts"
+            exit 1
+          fi
+          if ! grep -rq "$task" .next/server/app/index.html; then
+            echo "::error::example task '$task' is missing from the rendered page"
+            exit 1
+          fi
+          echo "Example task '$task' rendered."

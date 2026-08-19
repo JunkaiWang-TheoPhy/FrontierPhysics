@@ -29,9 +29,9 @@ under any of them will not merge.
 
 | Report | Minimum | Value |
 |---|---|---|
-| Project time scale — start and end date | 2 weeks | YYYY-MM-DD → YYYY-MM-DD |
-| Actual working hours spent exploring the task | 40 hours | |
-| Estimated hours for a first-year PhD to reproduce the results | 10 hours | |
+| Project time scale — start and end date | 2 weeks or more | YYYY-MM-DD → YYYY-MM-DD |
+| Actual working hours spent exploring the task | 40 hours or more | |
+| Estimated hours for a first-year PhD to reproduce when given task.md | 10 hours or more | |
 
 <!-- The last row is a backward estimate: assume a capable first-year PhD
 student in the field, already handed the task prompt and data, and estimate how
@@ -39,8 +39,8 @@ long reproducing your results would take them. -->
 
 | Field | Value |
 |---|---|
-| What the original work was | |
-| Did an LLM agent help, and where? | |
+| What the original work was (paper links or reference materials) | |
+| Did an LLM agent help when doing this research, and where? | |
 | Your background | PhD / PhD candidate / lab or industry experience |
 
 ## Task
@@ -54,9 +54,8 @@ long reproducing your results would take them. -->
 | Source and provenance | Origin of every input, with licenses for anything you did not produce |
 | Deliverables | The exact files the agent must produce |
 | Verifier | e.g. 4 outcome tests plus a 7-criterion rubric graded by a reviewer agent |
-| Mentor skills | |
 
-## Form-formatted task information
+## Form-formatted task information for human reviewers
 
 <!-- This section is the task-contribution form, inlined: each subsection maps
 1:1 to a form question, so a maintainer can copy answers between the two
@@ -127,47 +126,35 @@ the task. -->
 
 <!-- What `oracle/` regenerates, from which assets, and its verifier result. -->
 
-## Mentor skill summary
-
-<!-- One line per skill: what reusable method it carries, what it deliberately
-omits, and confirmation that none contains a final answer or verifier
-internals. -->
-
 ## Checklist
 
 <!-- Check every box. If a box is intentionally left unchecked, keep it
 unchecked and add a paragraph starting with "Deliberately unchecked" explaining
 why — the CI check requires one or the other. -->
 
-- [ ] `task.md` prompt body is human-authored and outcome-focused
+- [ ] `task.md` prompt body is concise, human-authored and outcome-focused
+- [ ] `rubric.json` all the items are human-authored with reference source information attached
 - [ ] `oracle/solve.sh` and oracle logic are human-authored
-- [ ] Metadata follows `taxonomy.yaml`
 - [ ] `bench tasks check tasks/<task-id>` passes
 - [ ] Oracle reaches reward `1.0`
 - [ ] Verifier checks outcomes, not implementation or skill usage
-- [ ] Planning rubric grades the deep-research stage
-- [ ] Mentor skills are included and may be task-specific
-- [ ] Mentor skills contain no hardcoded final answers or verifier internals
+- [ ] Rubric grades the deep-research and planning stage, both traj and output files
+- [ ] Skills (if any) contain no hardcoded final answers or verifier internals
 - [ ] Dockerfile does not bake skills into the agent image
 - [ ] Source, data, code, and license provenance are documented
-- [ ] No-skill and with-skill runs use the same task commit and model settings
-- [ ] At least one strong agent passes the with-skill solvability control
 - [ ] Trajectories and output artifacts were inspected
 - [ ] The task comes from my own research and took two weeks or more
-- [ ] This PR is from a fork and touches only `tasks/<task-id>/` plus the three re-admission files a task PR requires (`registry.json`, `.github/scripts/validate_repository.py`, `tasks/.gitkeep`)
+- [ ] The task is challenging to SOTA agents (e.g. 500+ steps to finish; bar of academia peer review captured in task rubrics & verifier; etc.)
 
 ## Local test results
 
-Report multiple trials per condition, not a single run. If a trial set was cut
-short, say so and report what finished. Record the harness and version, exact
-model identifiers, reasoning effort, task commit, and sandbox limits so the
-runs are reproducible.
+Report multiple trials per condition, not a single run. If a trial set was cut short, say so and report what finished. Record the harness and version, exact model identifiers, reasoning effort, task commit, and sandbox limits so the runs are reproducible.
 
 | Agent | Model | Reasoning | No skill (primary) | With skills (control) | Time |
 |---|---|---|---:|---:|---:|
 | | | | | | |
 
-## Rubric review (reviewer agent)
+## Rubric review results (reviewer agent)
 
 <!-- Encouraged but not required by CI: per-criterion pass/fail from the
 post-verify rubric reviewer, as in the reference PR. Ask a maintainer to run it
@@ -178,11 +165,6 @@ if you cannot. -->
 <!-- For each failing run: did it fail on scientific reasoning,
 environment/tooling, instructions, formatting, or verifier behavior? Quote the
 failing assertion where possible. -->
-
-## What you learned building it
-
-<!-- Anything a reviewer or future contributor should know — a leaky
-environment, a brittle tolerance, a metric that turned out uninformative. -->
 
 ## Artifacts
 

@@ -10,13 +10,10 @@ import {
   getExampleTaskTree,
 } from "@/lib/example-task";
 import { credit, site } from "@/lib/site";
-import { getTasks } from "@/lib/tasks";
 import { ArrowRight, Award } from "lucide-react";
 import Link from "next/link";
 
 export default function Home() {
-  const tasks = getTasks();
-
   return (
     <div className="flex flex-col min-h-screen relative text-foreground overflow-x-hidden">
       <main className="flex-1">
@@ -145,7 +142,7 @@ export default function Home() {
           <section id="tasks" className="scroll-mt-28">
             <div className="mb-10 text-center">
               <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">
-                Example tasks
+                Example task
               </h2>
             </div>
 
@@ -230,42 +227,6 @@ export default function Home() {
                 defaultOpen={["environment", "oracle", "verifier"]}
               />
             </div>
-
-            {tasks.filter((task) => task.id !== exampleTask.id).length > 0 && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-10">
-                {tasks
-                  .filter((task) => task.id !== exampleTask.id)
-                  .map((task) => (
-                    // Not a link: the tasks live in the private repository,
-                    // so there is no public page to send the reader to.
-                    <div
-                      key={task.id}
-                      className="rounded-2xl border border-border bg-card p-6 space-y-3"
-                    >
-                      <h3 className="font-mono text-sm font-semibold tracking-tight">
-                        {task.id}
-                      </h3>
-
-                      <div className="flex flex-wrap gap-1.5">
-                        {[task.difficulty, task.subcategory, ...task.taskTypes]
-                          .filter(Boolean)
-                          .map((tag) => (
-                            <span
-                              key={tag}
-                              className="rounded-full border border-border bg-muted px-2.5 py-0.5 text-xxs font-medium text-muted-foreground"
-                            >
-                              {tag}
-                            </span>
-                          ))}
-                      </div>
-
-                      <p className="text-sm text-muted-foreground leading-relaxed">
-                        {task.summary}
-                      </p>
-                    </div>
-                  ))}
-              </div>
-            )}
           </section>
 
           {/* Narrower than the task cards above it: this is prose, and the
