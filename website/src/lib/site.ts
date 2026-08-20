@@ -45,12 +45,10 @@ export const credit = {
  * A run of copy where the dates and venue names are emphasised. Storing them
  * as data rather than as hand-written markup keeps each sentence readable in
  * one piece here — these are the exact sentences of the policy — while still
- * letting the page bold a deadline or italicise a journal title.
+ * letting the page bold a deadline or a venue name.
  */
 export type Emphasis = {
   text: string;
-  /** Journal titles are set in italics as well as bold. */
-  journal?: boolean;
 };
 export type Sentence = readonly (string | Emphasis)[];
 
@@ -68,7 +66,7 @@ export const timeline: {
     "We will submit to ",
     { text: "ICLR" },
     " first and then submit to ",
-    { text: "Nature", journal: true },
+    { text: "Nature" },
     " after further polish.",
   ],
   milestones: [
@@ -88,7 +86,7 @@ export const timeline: {
         "Get tasks merged by ",
         { text: "31 December" },
         " to join the author list of the draft submitted to ",
-        { text: "Nature", journal: true },
+        { text: "Nature" },
         ".",
       ],
     },

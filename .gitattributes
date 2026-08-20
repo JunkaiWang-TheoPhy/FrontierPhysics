@@ -1,0 +1,10 @@
+# Binary formats: never apply line-ending conversion. Without this, a
+# Windows checkout with core.autocrlf can corrupt them at commit time.
+*.pdf binary
+*.npy binary
+*.npz binary
+*.stl binary
+*.h5 binary
+*.png binary
+*.jpg binary
+*.zip binary

@@ -1,14 +1,11 @@
 import { ContributorLogos } from "@/components/ContributorLogos";
 import { HeroBackground } from "@/components/HeroBackground";
 import { ResearchLoop } from "@/components/ResearchLoop";
+import { RunEval } from "@/components/RunEval";
 import { TaskFileTree } from "@/components/TaskFileTree";
 import { Timeline } from "@/components/Timeline";
 import { Button } from "@/components/ui/button";
-import {
-  exampleTask,
-  getExampleTaskConfig,
-  getExampleTaskTree,
-} from "@/lib/example-task";
+import { exampleTask, getExampleTaskTree } from "@/lib/example-task";
 import { credit, site } from "@/lib/site";
 import { ArrowRight, Award } from "lucide-react";
 import Link from "next/link";
@@ -169,64 +166,14 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Both cards stretch to the same row height so their edges align. */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
-              <div className="rounded-2xl border border-border bg-card overflow-hidden">
-                <div className="border-b border-border px-4 py-2.5 font-mono text-xs text-muted-foreground">
-                  task.md · config
-                </div>
-                <div className="max-h-[480px] overflow-y-auto px-5 divide-y divide-border">
-                  {getExampleTaskConfig().map((group) => (
-                    <div
-                      key={group.title ?? "root"}
-                      className="py-4 space-y-2.5"
-                    >
-                      {group.title && (
-                        <p className="font-mono text-xxs uppercase tracking-widest text-muted-foreground/70">
-                          {group.title}
-                        </p>
-                      )}
-                      <dl className="space-y-1.5">
-                        {group.rows.map((row) => (
-                          <div
-                            key={row.label}
-                            className="grid grid-cols-[9rem_1fr] gap-x-3"
-                          >
-                            <dt className="font-mono text-xs leading-6 text-muted-foreground">
-                              {row.label}
-                            </dt>
-                            <dd className="min-w-0 text-xs leading-6">
-                              {Array.isArray(row.value) ? (
-                                <span className="flex flex-wrap gap-1 py-0.5">
-                                  {row.value.map((item) => (
-                                    <span
-                                      key={item}
-                                      className="rounded-full border border-border bg-muted px-2 py-0.5 text-xxs font-medium text-muted-foreground"
-                                    >
-                                      {item}
-                                    </span>
-                                  ))}
-                                </span>
-                              ) : (
-                                <span className="break-words text-foreground/90">
-                                  {row.value}
-                                </span>
-                              )}
-                            </dd>
-                          </div>
-                        ))}
-                      </dl>
-                    </div>
-                  ))}
-                </div>
-              </div>
+            <TaskFileTree
+              rootLabel={`tasks/${exampleTask.id}/`}
+              nodes={getExampleTaskTree()}
+              defaultOpen={["environment", "oracle", "verifier"]}
+              defaultSelected="task.md"
+            />
 
-              <TaskFileTree
-                rootLabel={`tasks/${exampleTask.id}/`}
-                nodes={getExampleTaskTree()}
-                defaultOpen={["environment", "oracle", "verifier"]}
-              />
-            </div>
+            <RunEval />
           </section>
 
           {/* Narrower than the task cards above it: this is prose, and the

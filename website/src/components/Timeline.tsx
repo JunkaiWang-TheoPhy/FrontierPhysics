@@ -9,10 +9,7 @@ function Emphasised({ parts }: { parts: Sentence }) {
         typeof part === "string" ? (
           <Fragment key={index}>{part}</Fragment>
         ) : (
-          <strong
-            key={index}
-            className={`font-semibold text-foreground${part.journal ? " italic" : ""}`}
-          >
+          <strong key={index} className="font-semibold text-foreground">
             {part.text}
           </strong>
         ),
