@@ -40,7 +40,7 @@ long reproducing your results would take them. -->
 | Field | Value |
 |---|---|
 | What the original work was (paper links or reference materials) | |
-| Did an LLM agent help when doing this research, and where? | |
+| Did an LLM agent help when making this task, and where? | |
 | Your background | PhD / PhD candidate / lab or industry experience |
 
 ## Task
