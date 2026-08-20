@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FrontierPhysics Workflow at a Glance</title>
+<meta name="color-scheme" content="light dark">
+<!-- Same Satoshi build the website loads, so the type matches exactly. -->
+<link href="https://api.fontshare.com/v2/css?f[]=satoshi@300,400,500,700,900&display=swap" rel="stylesheet">
+<style>
+  /* Design tokens mirrored from website/src/app/globals.css so this page
+     and www.benchflow.ai/frontierphysics share one visual language.
+     Layout and content are the original card's; only font and color changed. */
+  :root{
+    --background: oklch(0.98 0.001 286.375);
+    --foreground: oklch(0.145 0 0);
+    --card: oklch(1 0 0);
+    --muted: oklch(0.97 0 0);
+    --muted-foreground: oklch(0.556 0 0);
+    --border: oklch(0.922 0 0);
+    --primary: oklch(0.205 0 0);
+    --primary-foreground: oklch(0.985 0 0);
+    --chart-1: oklch(0.646 0.222 41.116);
+    --chart-2: oklch(0.6 0.118 184.704);
+    --chart-3: oklch(0.398 0.07 227.392);
+    --ink: var(--foreground);
+    --ink-2: color-mix(in oklab, var(--foreground) 72%, var(--muted-foreground));
+    --ink-3: color-mix(in oklab, var(--foreground) 30%, var(--muted-foreground));
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --background: oklch(0.11 0.005 260);
+      --foreground: oklch(0.985 0 0);
+      --card: oklch(0.15 0.005 260);
+      --muted: oklch(0.18 0.005 260);
+      --muted-foreground: oklch(0.85 0 0);
+      --border: oklch(0.8 0.02 260 / 12%);
+      --primary: oklch(0.922 0 0);
+      --primary-foreground: oklch(0.205 0 0);
+      --chart-1: oklch(0.488 0.243 264.376);
+      --chart-2: oklch(0.696 0.17 162.48);
+      --chart-3: oklch(0.769 0.188 70.08);
+    }
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--background);
+    color:var(--ink);
+    font-family:"Satoshi",ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Noto Sans SC","Source Han Sans SC",sans-serif;
+    -webkit-font-smoothing:antialiased;
+    -moz-osx-font-smoothing:grayscale;
+    line-height:1.75;
+  }
+  .page{
+    width:1180px;
+    max-width:100%;
+    margin:0 auto;
+    background:var(--card);
+    padding:44px 40px 40px;
+  }
+
+  /* ---------- Language switcher ---------- */
+  .lang-switch{
+    position:fixed;
+    top:14px;
+    right:16px;
+    z-index:10;
+    display:flex;
+    gap:4px;
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:9999px;
+    padding:4px;
+    box-shadow:0 2px 10px oklch(0 0 0 / 6%);
+  }
+  .lang-btn{
+    border:0;
+    background:transparent;
+    color:var(--muted-foreground);
+    font-size:13px;
+    font-weight:500;
+    padding:5px 14px;
+    border-radius:9999px;
+    cursor:pointer;
+    font-family:inherit;
+    transition:background-color .2s,color .2s;
+  }
+  .lang-btn:hover{color:var(--ink)}
+  .lang-btn.active{
+    background:var(--primary);
+    color:var(--primary-foreground);
+  }
+  #page-zh{display:none}
+  body.zh #page-en{display:none}
+  body.zh #page-zh{display:block}
+
+  /* ---------- Header ---------- */
+  .title{
+    font-size:40px;
+    font-weight:700;
+    letter-spacing:-.025em;
+    margin:0 0 18px;
+    line-height:1.3;
+  }
+  .subtitle{
+    font-size:17.5px;
+    color:var(--ink-2);
+    margin:0 0 26px;
+  }
+  .subtitle b{color:var(--ink);font-weight:700}
+
+  /* ---------- Goal box ---------- */
+  .goal{
+    display:flex;
+    gap:16px;
+    background:color-mix(in oklab, var(--chart-2) 6%, var(--card));
+    border:1px solid color-mix(in oklab, var(--chart-2) 35%, transparent);
+    border-radius:1.125rem;
+    padding:20px 24px;
+    margin-bottom:34px;
+  }
+  .goal .emoji{font-size:30px;line-height:1.2}
+  .goal h3{
+    margin:0 0 6px;
+    font-size:19px;
+    font-weight:700;
+    color:var(--chart-2);
+  }
+  .goal p{margin:0;font-size:16.5px;color:var(--ink-2)}
+
+  /* ---------- Section headings ---------- */
+  .sec-head{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    margin:0 0 14px;
+  }
+  .num{
+    width:26px;height:26px;
+    flex:0 0 26px;
+    border-radius:7px;
+    background:var(--primary);
+    color:var(--primary-foreground);
+    font-size:15px;
+    font-weight:700;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .sec-head h2{
+    margin:0;
+    font-size:23px;
+    font-weight:700;
+    letter-spacing:-.02em;
+  }
+  .num.o{background:transparent;border:1px solid var(--border);color:var(--muted-foreground)}
+  a{color:inherit;text-decoration:underline;text-underline-offset:3px;text-decoration-thickness:1px}
+
+  /* ---------- Cards ---------- */
+  .grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin:0 0 30px}
+  .grid-2{display:grid;grid-template-columns:repeat(2,1fr);gap:20px;margin:0 0 30px}
+  .card{
+    border:1px solid;
+    border-radius:1.125rem;
+    padding:20px 22px;
+  }
+  .card .head{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+  .card .head h4{margin:0;font-size:18px;font-weight:700;letter-spacing:-.01em}
+  .card p{margin:0;font-size:15.5px;color:var(--ink-3)}
+  .card ul{margin:8px 0 0;padding-left:20px;font-size:15.5px;color:var(--ink-3)}
+  .card li{margin-bottom:2px}
+  .card li b,.card p b{color:var(--ink-2);font-weight:600}
+
+  /* The original rainbow collapses onto the site's three chart accents. */
+  .c-green,.c-teal,.c-purple{
+    background:color-mix(in oklab, var(--chart-2) 7%, var(--card));
+    border-color:color-mix(in oklab, var(--chart-2) 30%, transparent);
+  }
+  .c-amber{
+    background:color-mix(in oklab, var(--chart-1) 7%, var(--card));
+    border-color:color-mix(in oklab, var(--chart-1) 30%, transparent);
+  }
+  .c-blue{
+    background:color-mix(in oklab, var(--chart-3) 7%, var(--card));
+    border-color:color-mix(in oklab, var(--chart-3) 30%, transparent);
+  }
+
+  .t-blue{color:var(--chart-3)}
+  .t-teal,.t-purple{color:var(--chart-2)}
+
+  .ico{width:22px;height:22px;flex:0 0 22px;stroke-width:1.9;fill:none;stroke-linecap:round;stroke-linejoin:round}
+  .i-green,.i-teal,.i-purple{stroke:var(--chart-2)}
+  .i-blue,.i-pink{stroke:var(--chart-3)}
+  .i-amber,.i-orange{stroke:var(--chart-1)}
+
+  /* ---------- Steps 4/5/6 ---------- */
+  .step{
+    background:var(--muted);
+    border:1px solid var(--border);
+    border-radius:1.125rem;
+    padding:16px 18px;
+  }
+  .step .head{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+  .step .head h4{margin:0;font-size:18px;font-weight:700;letter-spacing:-.01em}
+  .step .num{width:24px;height:24px;flex:0 0 24px;font-size:14px}
+  .step .body{display:flex;gap:10px}
+  .step p{margin:0;font-size:15px;color:var(--ink-3)}
+  .down{
+    display:flex;justify-content:center;
+    color:var(--muted-foreground);font-size:20px;line-height:1;
+    padding:8px 0;
+  }
+
+  /* ---------- Flowchart ---------- */
+  .flow{
+    background:color-mix(in oklab, var(--chart-2) 5%, var(--card));
+    border:1px solid color-mix(in oklab, var(--chart-2) 28%, transparent);
+    border-radius:1.125rem;
+    padding:22px 24px 26px;
+  }
+  .flow > h3{
+    margin:0 0 20px;
+    font-size:21.5px;
+    font-weight:700;
+    letter-spacing:-.01em;
+    color:var(--chart-2);
+  }
+  .row{
+    display:grid;
+    grid-template-columns:1fr 30px 1fr 30px 1fr 30px 1fr;
+    align-items:stretch;
+    gap:0;
+  }
+  .arrow{
+    display:flex;align-items:center;justify-content:center;
+    color:var(--muted-foreground);font-size:19px;line-height:1;
+  }
+  .mid{
+    display:grid;
+    grid-template-columns:1fr 30px 1fr 30px 1fr 30px 1fr;
+  }
+  .mid .down{grid-column:7;padding:10px 0}
+  .node{
+    border:1px solid;
+    border-radius:1.125rem;
+    padding:14px 10px 16px;
+    text-align:center;
+    display:flex;flex-direction:column;align-items:center;
+    background:var(--card);
+  }
+  .node .ico{width:26px;height:26px;flex:0 0 26px;margin-bottom:8px;stroke-width:1.8}
+  .node h5{margin:0 0 6px;font-size:16.5px;font-weight:700;line-height:1.45;letter-spacing:-.01em}
+  .node p{margin:0;font-size:14px;color:var(--ink-3);line-height:1.6}
+
+  .n-green,.n-teal,.n-purple{
+    background:color-mix(in oklab, var(--chart-2) 8%, var(--card));
+    border-color:color-mix(in oklab, var(--chart-2) 32%, transparent);
+  }
+  .n-blue,.n-pink{
+    background:color-mix(in oklab, var(--chart-3) 8%, var(--card));
+    border-color:color-mix(in oklab, var(--chart-3) 32%, transparent);
+  }
+  .n-amber,.n-orange{
+    background:color-mix(in oklab, var(--chart-1) 8%, var(--card));
+    border-color:color-mix(in oklab, var(--chart-1) 32%, transparent);
+  }
+
+  /* ---------- Tips ---------- */
+  .tips{
+    margin-top:30px;
+    background:var(--muted);
+    border:1px solid var(--border);
+    border-radius:1.125rem;
+    padding:18px 22px;
+    display:grid;
+    grid-template-columns:118px repeat(4,1fr);
+    gap:0;
+    align-items:center;
+  }
+  .tips .label{
+    display:flex;align-items:center;gap:8px;
+    font-size:17px;font-weight:700;
+    padding-right:18px;
+  }
+  .tips .tip{
+    font-size:14.5px;
+    color:var(--ink-3);
+    padding:0 18px;
+    border-left:1px solid var(--border);
+    line-height:1.7;
+  }
+
+  @media (max-width:1000px){
+    .page{padding:28px 18px}
+    .grid-3,.grid-2{grid-template-columns:1fr}
+    .row,.mid{grid-template-columns:1fr;gap:10px}
+    .row .arrow{transform:rotate(90deg)}
+    .mid .down{grid-column:1}
+    /* Second flow row is written 8-7-6-5 for the desktop serpentine;
+       stacked vertically it must read 5-6-7-8 again. */
+    .flow .row:last-of-type{display:flex;flex-direction:column-reverse}
+    .flow .row:last-of-type .arrow{transform:rotate(-90deg)}
+    .tips{grid-template-columns:1fr;gap:12px}
+    .tips .tip{border-left:0;padding:0}
+    .title{font-size:27px}
+    .lang-switch{top:8px;right:8px}
+  }
+</style>
+</head>
+<body>
+
+<div class="lang-switch" role="group" aria-label="Language">
+  <button class="lang-btn active" id="btn-en" onclick="setLang('en')">English</button>
+  <button class="lang-btn" id="btn-zh" onclick="setLang('zh')">中文</button>
+</div>
+
+<!-- ============================== ENGLISH ============================== -->
+<div class="page" id="page-en">
+
+  <h1 class="title">The FrontierPhysics Workflow at a Glance 🚀</h1>
+  <p class="subtitle"><b>In one sentence:</b> together we build real, hard, verifiable frontier-physics research tasks that measure the research ability of AI agents.</p>
+
+  <!-- Core goal -->
+  <div class="goal">
+    <div class="emoji">🎯</div>
+    <div>
+      <h3>Core goal</h3>
+      <p>Every task is a real research project (about the scale of one paper), runs end-to-end in a computational environment, and challenges SOTA agents.<br>
+      Verifiable grading plus research-behavior rubrics hold both the result and the process to a bar you would show a senior researcher.</p>
+    </div>
+  </div>
+
+  <!-- 1 -->
+  <div class="sec-head"><div class="num">1</div><h2>What is worth submitting (think this through first)</h2></div>
+  <div class="grid-3">
+    <div class="card c-green">
+      <div class="head">
+        <svg class="ico i-green" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8.3 12.3l2.6 2.6 4.8-5.4"/></svg>
+        <h4>A real research project</h4>
+      </div>
+      <p>From your own research, ideally the scope of a paper. Multiple valid solution paths welcome.</p>
+    </div>
+    <div class="card c-amber">
+      <div class="head">
+        <svg class="ico i-blue" viewBox="0 0 24 24"><rect x="2.5" y="4" width="19" height="13" rx="2"/><path d="M8.5 20.5h7M12 17.5v3"/></svg>
+        <h4>Completable in a computational environment</h4>
+      </div>
+      <p>Every step runs in the sandbox — no wet lab. If experiments are essential, mock the device (e.g. env0) or grade the planning stage instead.</p>
+    </div>
+    <div class="card c-purple">
+      <div class="head">
+        <svg class="ico i-purple" viewBox="0 0 24 24"><rect x="3" y="4.5" width="18" height="15" rx="2.5"/><path d="M6.5 15.5l3.4-4.4 2.6 2.6 4.9-5.4"/></svg>
+        <h4>Challenging for agents</h4>
+      </div>
+      <p>Not searchable, not solvable in minutes. Local runs and review — not gut feeling — decide what counts as hard.</p>
+    </div>
+  </div>
+
+  <!-- 2 -->
+  <div class="sec-head"><div class="num">2</div><h2>What you own</h2></div>
+  <div class="grid-2">
+    <div class="card c-blue">
+      <div class="head">
+        <svg class="ico i-blue" viewBox="0 0 24 24"><path d="M14 3H7.5A2 2 0 0 0 5.5 5v14a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M9 12.5h6M9 16h4.5"/></svg>
+        <h4 class="t-blue">The task itself</h4>
+      </div>
+      <p>Define the research question, background, data/environment, and deliverables. An agent may help along the way — but <b>task.md and rubric.json must be hand-written</b>: you write, polish, and confirm the final text yourself.</p>
+    </div>
+    <div class="card c-teal">
+      <div class="head">
+        <svg class="ico i-teal" viewBox="0 0 24 24"><path d="M12 4v16M8 20h8M6.5 7.5h11M12 5.5l5.5 2M12 5.5L6.5 7.5"/><path d="M6.5 7.5L3.5 14h6zM17.5 7.5L14.5 14h6z"/></svg>
+        <h4 class="t-teal">Verifier + rubric (grading &amp; review standards)</h4>
+      </div>
+      <p>The verifier grades the result; the rubric grades the research behavior. You design both — and you sign off on both.</p>
+    </div>
+  </div>
+
+  <!-- 3 -->
+  <div class="sec-head"><div class="num">3</div><h2>Verifier vs. rubric</h2></div>
+  <div class="grid-2">
+    <div class="card c-blue">
+      <div class="head">
+        <svg class="ico i-blue" viewBox="0 0 24 24"><path d="M14 3H7.5A2 2 0 0 0 5.5 5v14a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M8.8 13.6l2 2 3.8-4"/></svg>
+        <h4 class="t-blue">Verifier: checks the result (result correctness)</h4>
+      </div>
+      <p>Automated, verifiable checks that the result is scientifically correct: numerical tolerances, file structure, figure contents.</p>
+    </div>
+    <div class="card c-purple">
+      <div class="head">
+        <svg class="ico i-purple" viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.4"/><path d="M5 20.5c0-3.6 3.1-6.2 7-6.2s7 2.6 7 6.2"/></svg>
+        <h4 class="t-purple">Rubric: checks the process (research behavior)</h4>
+      </div>
+      <p>LLM-judged review of how the research was done — professional, solid, reproducible, no cheating:</p>
+      <ul>
+        <li><b>Blockers</b>: serious problems or cheating (e.g. guessing the answer without doing the computation)</li>
+        <li><b>Non-blockers</b>: quality dimensions, weighted and scored 0–2</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- 4/5/6 -->
+  <div class="grid-3">
+    <div class="step">
+      <div class="head"><div class="num">4</div><h4>Iterate and polish locally</h4></div>
+      <div class="body">
+        <svg class="ico i-blue" viewBox="0 0 24 24"><path d="M4 12a8 8 0 0 1 13.6-5.7L20 8.5"/><path d="M20 4v4.5h-4.5"/><path d="M20 12a8 8 0 0 1-13.6 5.7L4 15.5"/><path d="M4 20v-4.5h4.5"/></svg>
+        <p>Run agents locally and watch how they fail. Sharpen the task, verifier, and rubric until they discriminate.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="head"><div class="num">5</div><h4>Self-check and align</h4></div>
+      <div class="body">
+        <svg class="ico i-blue" viewBox="0 0 24 24"><path d="M12 3.2l7 2.8v5.6c0 4.2-2.8 7.6-7 9.2-4.2-1.6-7-5-7-9.2V6z"/></svg>
+        <p>Self-review with the task-review skill and the merged good-task PRs. Survive an adversarial review, then open the formal PR.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="head"><div class="num">6</div><h4>Formal PR and review</h4></div>
+      <div class="body">
+        <svg class="ico i-blue" viewBox="0 0 24 24"><circle cx="8.5" cy="8.5" r="2.8"/><circle cx="16.5" cy="9.5" r="2.2"/><path d="M3.5 19c0-2.8 2.2-4.8 5-4.8s5 2 5 4.8"/><path d="M15 14.6c2.6.1 4.5 2 4.5 4.4"/></svg>
+        <p>Auto review clears format and completeness blockers; human review then debates the science, difficulty, and rigor — iterate until merge.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 7 -->
+  <div class="sec-head"><div class="num">7</div><h2>What reviewers check (in order)</h2></div>
+  <div class="grid-2">
+    <div class="step">
+      <div class="head"><div class="num o">1</div><h4>Good format</h4></div>
+      <p>The task and the PR follow the standard format — task example: <a href="https://github.com/benchflow-ai/FrontierPhysics/pull/109" target="_blank" rel="noopener noreferrer">PR #109</a>.</p>
+    </div>
+    <div class="step">
+      <div class="head"><div class="num o">2</div><h4>Authentic environment</h4></div>
+      <p>environment/ holds real research files in the most original formats used in research — not AI-vibe made-up data. AI-generated content has clear patterns (weird file formats to represent data, etc.).</p>
+    </div>
+    <div class="step">
+      <div class="head"><div class="num o">3</div><h4>Clean components</h4></div>
+      <p>No weird files in environment/, verifier/, or oracle/ — stray files are a strong sign of AI-generated tasks without human audit. Using agents to develop is fine; humans must fully check the final content.</p>
+    </div>
+    <div class="step">
+      <div class="head"><div class="num o">4</div><h4>Real project, end to end</h4></div>
+      <p>From a research project the contributor did themselves, covering that project end to end. One paper to one task is ideal; real end-to-end projects without papers are also good candidates.</p>
+    </div>
+    <div class="step">
+      <div class="head"><div class="num o">5</div><h4>Human-written text</h4></div>
+      <p>task.md and rubric.json are human-written and human-polished — reviewers check with tools like GPTZero.</p>
+    </div>
+    <div class="step">
+      <div class="head"><div class="num o">6</div><h4>Referenced rubric</h4></div>
+      <p>Every item in rubric.json carries a solid reference from the contributor, supporting its blocker / non-blocker choice.</p>
+    </div>
+    <div class="step">
+      <div class="head"><div class="num o">7</div><h4>Peer-review bar</h4></div>
+      <p>The verifier and rubric logic represent academic peer review: if an agent passes the verifier plus blocker rubrics, the deliverables should be publishable or presentable to senior researchers without harming your reputation.</p>
+    </div>
+    <div class="step">
+      <div class="head"><div class="num o">8</div><h4>Hard for SOTA agents</h4></div>
+      <p>The final experiment provides no skills to the agent. Indications of a challenging task: 500+ steps to finish; agent results that cannot pass peer review or that you would not show your colleagues.</p>
+    </div>
+    <div class="step">
+      <div class="head"><div class="num o">9</div><h4>No false verdicts</h4></div>
+      <p>You can show the verifier and rubric logic produce neither false positives nor false negatives.</p>
+    </div>
+    <div class="step">
+      <div class="head"><div class="num o">10</div><h4>Final deliverables only</h4></div>
+      <p>Deliver only the files you would use for a peer-review submission, or presentable results you would proudly share (paper.pdf, report.pptx). Do not include process files like PLAN.md — the example task has been replaced accordingly.</p>
+    </div>
+  </div>
+
+  <div class="flow">
+      <h3>The end-to-end flow, in one picture</h3>
+
+      <div class="row">
+        <div class="node n-green">
+          <svg class="ico i-green" viewBox="0 0 24 24"><path d="M9.5 18.5h5M10.5 21h3"/><path d="M12 3a6 6 0 0 0-3.4 10.9c.5.4.9 1 .9 1.6v1h5v-1c0-.6.4-1.2.9-1.6A6 6 0 0 0 12 3z"/></svg>
+          <h5>1. Ideate</h5>
+          <p>Ground it in real research;<br>pick a direction<br>worth submitting</p>
+        </div>
+        <div class="arrow">→</div>
+        <div class="node n-blue">
+          <svg class="ico i-blue" viewBox="0 0 24 24"><path d="M14 3H7.5A2 2 0 0 0 5.5 5v14a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M9 12.5h6M9 16h4.5"/></svg>
+          <h5>2. Build the task</h5>
+          <p>Write task.md<br>Prepare environment &amp; data<br>Pin down deliverables</p>
+        </div>
+        <div class="arrow">→</div>
+        <div class="node n-teal">
+          <svg class="ico i-teal" viewBox="0 0 24 24"><path d="M12 4v16M8 20h8M6.5 7.5h11M12 5.5l5.5 2M12 5.5L6.5 7.5"/><path d="M6.5 7.5L3.5 14h6zM17.5 7.5L14.5 14h6z"/></svg>
+          <h5>3. Design the grading<br>and review standards</h5>
+          <p>Write the verifier<br>Design the rubric<br>(blockers +<br>non-blockers)</p>
+        </div>
+        <div class="arrow">→</div>
+        <div class="node n-amber">
+          <svg class="ico i-amber" viewBox="0 0 24 24"><path d="M4 12a8 8 0 0 1 13.6-5.7L20 8.5"/><path d="M20 4v4.5h-4.5"/><path d="M20 12a8 8 0 0 1-13.6 5.7L4 15.5"/><path d="M4 20v-4.5h4.5"/></svg>
+          <h5>4. Iterate locally</h5>
+          <p>Run different agents<br>Study failure modes<br>Refine task /<br>verifier / rubric</p>
+        </div>
+      </div>
+
+      <div class="mid"><div class="down">↓</div></div>
+
+      <div class="row">
+        <div class="node n-green">
+          <svg class="ico i-green" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8.3 12.3l2.6 2.6 4.8-5.4"/></svg>
+          <h5>8. Merged</h5>
+          <p>The task goes live<br>in the benchmark</p>
+        </div>
+        <div class="arrow">←</div>
+        <div class="node n-orange">
+          <svg class="ico i-orange" viewBox="0 0 24 24"><circle cx="8.5" cy="8.5" r="2.8"/><circle cx="16.5" cy="9.5" r="2.2"/><path d="M3.5 19c0-2.8 2.2-4.8 5-4.8s5 2 5 4.8"/><path d="M15 14.6c2.6.1 4.5 2 4.5 4.4"/></svg>
+          <h5>7. Human review</h5>
+          <p>Scientific soundness, difficulty,<br>grading rigor</p>
+        </div>
+        <div class="arrow">←</div>
+        <div class="node n-pink">
+          <svg class="ico i-pink" viewBox="0 0 24 24"><path d="M7 18.5a4 4 0 0 1 .7-7.9 5.5 5.5 0 0 1 10.6 1.3 3.4 3.4 0 0 1-.8 6.6"/><path d="M12 21v-7.5M9.4 16l2.6-2.6 2.6 2.6"/></svg>
+          <h5>6. Open the formal PR</h5>
+          <p>Auto review fires<br>(format &amp; completeness checks)</p>
+        </div>
+        <div class="arrow">←</div>
+        <div class="node n-purple">
+          <svg class="ico i-purple" viewBox="0 0 24 24"><path d="M12 3.2l7 2.8v5.6c0 4.2-2.8 7.6-7 9.2-4.2-1.6-7-5-7-9.2V6z"/></svg>
+          <h5>5. Self-check &amp; align</h5>
+          <p>task-review skill<br>+ good-task PRs<br>+ adversarial review</p>
+        </div>
+      </div>
+    </div>
+
+  <!-- Tips -->
+  <div class="tips">
+    <div class="label">⭐ Tips</div>
+    <div class="tip">Open a draft PR early and start the conversation — don't submit right before a deadline.</div>
+    <div class="tip">Keep everything reproducible, verifiable, and auditable.</div>
+    <div class="tip">Judge difficulty from local-run data, not subjective impressions.</div>
+    <div class="tip">Science and authenticity first; implementation and formatting second.</div>
+  </div>
+
+</div>
+
+<!-- ============================== 中文 ============================== -->
+<div class="page" id="page-zh">
+
+  <h1 class="title">FrontierPhysics 工作流程速览 🚀</h1>
+  <p class="subtitle"><b>一句话定位：</b>我们一起构建真实、困难、可验证的前沿物理研究任务，用于评估 AI Agent 的研究能力。</p>
+
+  <!-- 核心目标 -->
+  <div class="goal">
+    <div class="emoji">🎯</div>
+    <div>
+      <h3>核心目标</h3>
+      <p>每个任务都来源于真实研究项目（尽量对齐一篇论文的体量），在计算环境中可端到端完成，对 SOTA Agent 具有挑战性，<br>
+      通过可验证的判分与研究行为（rubric）确保结果与过程都达到“可发表/可显现给资深研究者”的标准。</p>
+    </div>
+  </div>
+
+  <!-- 1 -->
+  <div class="sec-head"><div class="num">1</div><h2>什么样的任务值得提（先想清楚）</h2></div>
+  <div class="grid-3">
+    <div class="card c-green">
+      <div class="head">
+        <svg class="ico i-green" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8.3 12.3l2.6 2.6 4.8-5.4"/></svg>
+        <h4>真实研究项目</h4>
+      </div>
+      <p>来源于你的真实研究，尽量覆盖一个<br>paper 的体量（从问题定义到结论），<br>也可以包含多个合理的 inference 路径。</p>
+    </div>
+    <div class="card c-amber">
+      <div class="head">
+        <svg class="ico i-blue" viewBox="0 0 24 24"><rect x="2.5" y="4" width="19" height="13" rx="2"/><path d="M8.5 20.5h7M12 17.5v3"/></svg>
+        <h4>可在计算环境中完成</h4>
+      </div>
+      <p>任务的所有步骤都可以在计算环境中<br>完成（无真实实验依赖）。如需实验，<br>可使用可信的模拟/Mock（如 env0）<br>或聚焦研究与规划阶段。</p>
+    </div>
+    <div class="card c-purple">
+      <div class="head">
+        <svg class="ico i-purple" viewBox="0 0 24 24"><rect x="3" y="4.5" width="18" height="15" rx="2.5"/><path d="M6.5 15.5l3.4-4.4 2.6 2.6 4.9-5.4"/></svg>
+        <h4>对 Agent 有挑战性</h4>
+      </div>
+      <p>不能过于简单：不能直接搜到答案，<br>也不应在几分钟内被轻松解决。<br>是否“足够难”，由本地运行结果与<br>评审共同判断。</p>
+    </div>
+  </div>
+
+  <!-- 2 -->
+  <div class="sec-head"><div class="num">2</div><h2>你主要负责什么</h2></div>
+  <div class="grid-2">
+    <div class="card c-blue">
+      <div class="head">
+        <svg class="ico i-blue" viewBox="0 0 24 24"><path d="M14 3H7.5A2 2 0 0 0 5.5 5v14a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M9 12.5h6M9 16h4.5"/></svg>
+        <h4 class="t-blue">Task（任务本身）</h4>
+      </div>
+      <p>清晰定义研究问题、背景、数据/环境、交付物和预期贡献。<br>
+      过程中可以让 Agent 协助，但 <b>task.md 与 rubric.json 必须由你亲手撰写</b>，<br>
+      逐字打磨并最终确认，避免幻觉与偏差。</p>
+    </div>
+    <div class="card c-teal">
+      <div class="head">
+        <svg class="ico i-teal" viewBox="0 0 24 24"><path d="M12 4v16M8 20h8M6.5 7.5h11M12 5.5l5.5 2M12 5.5L6.5 7.5"/><path d="M6.5 7.5L3.5 14h6zM17.5 7.5L14.5 14h6z"/></svg>
+        <h4 class="t-teal">Verifier + Rubric（判分与评审标准）</h4>
+      </div>
+      <p>设计可验证的客观判分（verifier）和评审维度（rubric）。<br>
+      Verifier 看结果是否正确；Rubric 看研究行为是否专业。<br>
+      同样需要你把关与最终确认。</p>
+    </div>
+  </div>
+
+  <!-- 3 -->
+  <div class="sec-head"><div class="num">3</div><h2>Verifier 与 Rubric 的区别</h2></div>
+  <div class="grid-2">
+    <div class="card c-blue">
+      <div class="head">
+        <svg class="ico i-blue" viewBox="0 0 24 24"><path d="M14 3H7.5A2 2 0 0 0 5.5 5v14a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M8.8 13.6l2 2 3.8-4"/></svg>
+        <h4 class="t-blue">Verifier：检查结果（Result Correctness）</h4>
+      </div>
+      <p>自动化、可验证的判分逻辑，判断提交结果是否满足科学与<br>
+      工程上的正确性要求（如数值误差、文件结构、图表内容等）。</p>
+    </div>
+    <div class="card c-purple">
+      <div class="head">
+        <svg class="ico i-purple" viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.4"/><path d="M5 20.5c0-3.6 3.1-6.2 7-6.2s7 2.6 7 6.2"/></svg>
+        <h4 class="t-purple">Rubric：检查研究行为（Research Behavior）</h4>
+      </div>
+      <p>由 LLM 评审的维度，评估 Agent 的研审过程是否专业、扎实、<br>
+      可复现、无作弊等。Rubric 分为：</p>
+      <ul>
+        <li><b>Blocker（阻断项）</b>：严重问题或作弊行为（如未做计算直接猜答案）</li>
+        <li><b>Non-blocker（计分项）</b>：质量维度，按权重评分（0-2 分）</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- 4/5/6 -->
+  <div class="grid-3">
+    <div class="step">
+      <div class="head"><div class="num">4</div><h4>本地迭代与打磨</h4></div>
+      <div class="body">
+        <svg class="ico i-blue" viewBox="0 0 24 24"><path d="M4 12a8 8 0 0 1 13.6-5.7L20 8.5"/><path d="M20 4v4.5h-4.5"/><path d="M20 12a8 8 0 0 1-13.6 5.7L4 15.5"/><path d="M4 20v-4.5h4.5"/></svg>
+        <p>多用本地运行观察 Agent 的表现与失败模式，据此完善 task、verifier 与 rubric，提高区分度。</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="head"><div class="num">5</div><h4>自检与对齐</h4></div>
+      <div class="body">
+        <svg class="ico i-blue" viewBox="0 0 24 24"><path d="M12 3.2l7 2.8v5.6c0 4.2-2.8 7.6-7 9.2-4.2-1.6-7-5-7-9.2V6z"/></svg>
+        <p>用 task-review skill 自检，参考 good task PR，通过 adversarial review 后提交正式 PR。</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="head"><div class="num">6</div><h4>正式 PR 与评审</h4></div>
+      <div class="body">
+        <svg class="ico i-blue" viewBox="0 0 24 24"><circle cx="8.5" cy="8.5" r="2.8"/><circle cx="16.5" cy="9.5" r="2.2"/><path d="M3.5 19c0-2.8 2.2-4.8 5-4.8s5 2 5 4.8"/><path d="M15 14.6c2.6.1 4.5 2 4.5 4.4"/></svg>
+        <p>自动检查清掉格式与完整性 blocker 后，真人评审讨论科学性、难度与判分严谨性，迭代至合并。</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 7 -->
+  <div class="sec-head"><div class="num">7</div><h2>评审时会依次检查什么</h2></div>
+  <div class="grid-2">
+    <div class="step">
+      <div class="head"><div class="num o">1</div><h4>格式规范</h4></div>
+      <p>任务与 PR 遵循标准格式——示例任务：<a href="https://github.com/benchflow-ai/FrontierPhysics/pull/109" target="_blank" rel="noopener noreferrer">PR #109</a>。</p>
+    </div>
+    <div class="step">
+      <div class="head"><div class="num o">2</div><h4>环境真实</h4></div>
+      <p>environment/ 中是真实科研环境与文件，采用科研中最原始的文件格式，而非 AI 编造的数据。AI 生成内容有明显模式（例如爱用奇怪的文件格式存数据）。</p>
+    </div>
+    <div class="step">
+      <div class="head"><div class="num o">3</div><h4>组件干净</h4></div>
+      <p>environment/、verifier/、oracle/ 中没有多余杂项文件——那是任务由 AI 生成且未经人工审核的强烈信号。开发时可以用 agent，但最终内容必须经人工全面检查。</p>
+    </div>
+    <div class="step">
+      <div class="head"><div class="num o">4</div><h4>真实且端到端</h4></div>
+      <p>来自贡献者亲身完成的真实研究项目，并端到端覆盖该项目。一篇论文对应一个任务最理想；没有论文的真实端到端项目同样合适。</p>
+    </div>
+    <div class="step">
+      <div class="head"><div class="num o">5</div><h4>人工撰写</h4></div>
+      <p>task.md 与 rubric.json 由人撰写并润色——评审会用 GPTZero 等工具检查。</p>
+    </div>
+    <div class="step">
+      <div class="head"><div class="num o">6</div><h4>评分项有依据</h4></div>
+      <p>rubric.json 每一项都有贡献者提供的可靠参考文献，支撑其 blocker / non-blocker 的划分。</p>
+    </div>
+    <div class="step">
+      <div class="head"><div class="num o">7</div><h4>同行评审门槛</h4></div>
+      <p>verifier 与 rubric 的逻辑要能代表学术论文同行评审的标准：agent 通过 verifier 与 blocker 评分项后，交付物应当“可发表/可展示”给资深研究者而不损害你的学术声誉。</p>
+    </div>
+    <div class="step">
+      <div class="head"><div class="num o">8</div><h4>对 SOTA agent 足够难</h4></div>
+      <p>正式实验不向 agent 提供任何 skill。困难任务的参考信号：完成需 500+ 步；agent 的结果达不到同行评审水平，拿给同事看会损害你的声誉。</p>
+    </div>
+    <div class="step">
+      <div class="head"><div class="num o">9</div><h4>无误判</h4></div>
+      <p>能证明 verifier 与 rubric 逻辑既无假阳性也无假阴性。</p>
+    </div>
+    <div class="step">
+      <div class="head"><div class="num o">10</div><h4>只交付最终成果</h4></div>
+      <p>最终交付物只应包含你会用于论文投稿评审的文件，或可自豪分享给同事的成果（paper.pdf、report.pptx）。不要包含 PLAN.md 之类的过程文件——示例任务已相应更新。</p>
+    </div>
+  </div>
+
+  <div class="flow">
+      <h3>端到端流程图（一图看懂）</h3>
+
+      <div class="row">
+        <div class="node n-green">
+          <svg class="ico i-green" viewBox="0 0 24 24"><path d="M9.5 18.5h5M10.5 21h3"/><path d="M12 3a6 6 0 0 0-3.4 10.9c.5.4.9 1 .9 1.6v1h5v-1c0-.6.4-1.2.9-1.6A6 6 0 0 0 12 3z"/></svg>
+          <h5>1. 想题</h5>
+          <p>基于真实研究，<br>确定值得提的<br>任务方向</p>
+        </div>
+        <div class="arrow">→</div>
+        <div class="node n-blue">
+          <svg class="ico i-blue" viewBox="0 0 24 24"><path d="M14 3H7.5A2 2 0 0 0 5.5 5v14a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M9 12.5h6M9 16h4.5"/></svg>
+          <h5>2. 制作 task</h5>
+          <p>撰写 task.md<br>准备环境与数据<br>明确交付物</p>
+        </div>
+        <div class="arrow">→</div>
+        <div class="node n-teal">
+          <svg class="ico i-teal" viewBox="0 0 24 24"><path d="M12 4v16M8 20h8M6.5 7.5h11M12 5.5l5.5 2M12 5.5L6.5 7.5"/><path d="M6.5 7.5L3.5 14h6zM17.5 7.5L14.5 14h6z"/></svg>
+          <h5>3. 设计判分<br>与评审标准</h5>
+          <p>编写 verifier<br>设计 rubric<br>（blocker +<br>non-blocker）</p>
+        </div>
+        <div class="arrow">→</div>
+        <div class="node n-amber">
+          <svg class="ico i-amber" viewBox="0 0 24 24"><path d="M4 12a8 8 0 0 1 13.6-5.7L20 8.5"/><path d="M20 4v4.5h-4.5"/><path d="M20 12a8 8 0 0 1-13.6 5.7L4 15.5"/><path d="M4 20v-4.5h4.5"/></svg>
+          <h5>4. 本地迭代</h5>
+          <p>运行不同 Agent<br>观察失败模式<br>完善 task /<br>verifier / rubric</p>
+        </div>
+      </div>
+
+      <div class="mid"><div class="down">↓</div></div>
+
+      <div class="row">
+        <div class="node n-green">
+          <svg class="ico i-green" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8.3 12.3l2.6 2.6 4.8-5.4"/></svg>
+          <h5>8. 合并入库</h5>
+          <p>任务正式上线<br>进入基准</p>
+        </div>
+        <div class="arrow">←</div>
+        <div class="node n-orange">
+          <svg class="ico i-orange" viewBox="0 0 24 24"><circle cx="8.5" cy="8.5" r="2.8"/><circle cx="16.5" cy="9.5" r="2.2"/><path d="M3.5 19c0-2.8 2.2-4.8 5-4.8s5 2 5 4.8"/><path d="M15 14.6c2.6.1 4.5 2 4.5 4.4"/></svg>
+          <h5>7. 真人评审</h5>
+          <p>科学合理性、难度、<br>判分严谨性讨论</p>
+        </div>
+        <div class="arrow">←</div>
+        <div class="node n-pink">
+          <svg class="ico i-pink" viewBox="0 0 24 24"><path d="M7 18.5a4 4 0 0 1 .7-7.9 5.5 5.5 0 0 1 10.6 1.3 3.4 3.4 0 0 1-.8 6.6"/><path d="M12 21v-7.5M9.4 16l2.6-2.6 2.6 2.6"/></svg>
+          <h5>6. 提交正式 PR</h5>
+          <p>触发 auto review<br>（格式与组件检查）</p>
+        </div>
+        <div class="arrow">←</div>
+        <div class="node n-purple">
+          <svg class="ico i-purple" viewBox="0 0 24 24"><path d="M12 3.2l7 2.8v5.6c0 4.2-2.8 7.6-7 9.2-4.2-1.6-7-5-7-9.2V6z"/></svg>
+          <h5>5. 自检与对齐</h5>
+          <p>使用 task-review skill<br>+ 参考 good task PR<br>通过 adversarial review</p>
+        </div>
+      </div>
+    </div>
+
+  <!-- 小贴士 -->
+  <div class="tips">
+    <div class="label">⭐ 小贴士</div>
+    <div class="tip">先开 draft PR 早沟通，<br>避免临近截止才提交。</div>
+    <div class="tip">保持所有内容可复现、可验证、<br>可审计。</div>
+    <div class="tip">对难度的判断依赖本地运行数据，<br>而非主观印象。</div>
+    <div class="tip">优先保证科学性与真实性，<br>其次才是实现与格式。</div>
+  </div>
+
+</div>
+
+<script>
+  function setLang(lang){
+    var zh = lang === 'zh';
+    document.body.classList.toggle('zh', zh);
+    document.documentElement.lang = zh ? 'zh-CN' : 'en';
+    document.title = zh ? 'FrontierPhysics 工作流程速览' : 'FrontierPhysics Workflow at a Glance';
+    document.getElementById('btn-en').classList.toggle('active', !zh);
+    document.getElementById('btn-zh').classList.toggle('active', zh);
+    try { localStorage.setItem('fp-lang', lang); } catch (e) {}
+  }
+  (function(){
+    var lang = 'en';
+    try { lang = localStorage.getItem('fp-lang') || 'en'; } catch (e) {}
+    var m = /[?&]lang=(en|zh)/.exec(window.location.search);
+    if (m) { lang = m[1]; }
+    setLang(lang);
+    if (/[?&]noswitch/.test(window.location.search)) {
+      document.querySelector('.lang-switch').style.display = 'none';
+    }
+  })();
+</script>
+
+</body>
+</html>

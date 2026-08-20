@@ -12,12 +12,11 @@ Are AI agents good physicists?
 
 ## What is FrontierPhysics?
 
-FrontierPhysics is a benchmark evaluating how AI agents do **frontier physics research iteratively**. We evaluate realistic research challenges with iteration loops from **literature deep review** to **research plan implementation**. Tasks come from real research problems that take at least **weeks of effort** for a physics PhD to do deep research and implement, and SOTA LLM agents **struggle** with. The tasks are evaluated with verifiable graders and per-task rubric-based reviewer agents to make sure agents are doing research in ways **aligned with real frontier researchers**.
+FrontierPhysics is a benchmark evaluating how AI agents do **frontier physics research** end-to-end — realistic challenges drawn from real research problems that take a physics PhD **weeks of effort** and that SOTA agents **struggle** with, graded by verifiable checkers plus per-task rubric-based reviewer agents. How tasks are built, graded, and reviewed is all in the picture below.
 
-When doing research, a typical loop is: from **research & planning** -> to **implementation & experiment** -> to **evaluation & feedback**. For theoretical / simulation-based / data-analyzing-intense research etc. this is feasible as long as the agent does not need to interact with real world. But for the experimental / engineering-application physics tasks, if we cannot run real world experiment, we can handle it in 2 ways: 
+[![The FrontierPhysics workflow at a glance](docs/assets/workflow-en.png)](https://www.benchflow.ai/frontierphysics/workflow.html)
 
-1. Use digital version of device simulation and mock API to simulate how that device would work: like https://github.com/benchflow-ai/env0 and make sure the device simulation is realistic and obey physics laws.
-2. If the whole experiment simulation is too challenging, since the first stage of the task is more about research & planning, we focus on using rubrics (rubric.json) + LLM agent as judge to focus more on evaluation of the experiment planning; device/instrument shopping list planning; etc.
+> 🖱 The picture is a static render, so links inside it are not clickable. Click the image for the [interactive version](https://www.benchflow.ai/frontierphysics/workflow.html) (English / 中文), or jump straight to: [join form](https://forms.gle/eZk26ffY6tfECeCk9) · [example task PR #109](https://github.com/benchflow-ai/FrontierPhysics/pull/109) · [PR template](.github/PULL_REQUEST_TEMPLATE.md) · [task-review skill](.agents/skills/task-review) · [Discord](https://discord.gg/G9dg3EfSva)
 
 ## Quick Start
 
