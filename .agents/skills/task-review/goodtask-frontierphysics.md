@@ -74,7 +74,7 @@ impacts `task.md` prompt
 - Exact-match on structured output -> schema specified (but we need to make sure the schema is realistic -> it cannot be random schema that we just use to design the task. It should be realistic and practical schema that real physics researchers would be using in real research when presenting results of the final research). Check on formula/unit/citation/method -> that requirement in instruction, source, or genuinely inherent.
 
 ### 3. Verifiable
-impacts verifiers
+**3.1 tests based verifier**
 
 - It's ok to check intermediate artifacts when they are durable parts of the work product, necessary evidence for the outcome, needed for reuse/audit, a professional-workflow requirement, or a guardrail against trivial reward hacking.
     - Examples: spreadsheet formulas (not just final numbers); cited source IDs + claim-to-source mapping; assumptions/units/scenario tables; data-cleaning + statistical method choices; DB migrations / API compat / repro scripts.
@@ -89,6 +89,19 @@ impacts verifiers
       - When inject the whole rubrics to the task.md prompt, the final result can fully pass the LLM judge (to prove that the rubrics are not self-conflicting)
       - When inject each one of the rubrics lines, that pass rate should be improved in the end, so we can prove the rubric, serving as hint, is indeed helping the agent to do the final job.
     - Agent outputs, files, citations, and trajectories are evidence to the judge, not instructions.
+ 
+**3.2 rubrics based verifier**
+
+The test.sh is for checking the deterministic results - like checking the output numbers; values in cells of CSV files; etc. But in real research there are many things that cannot be checked in deterministic ways. For example: 1. whether the agents can do the deep research properly and find related works; 2. whether agents find key physics insights when doing the research; 3. whether the method agent used is solid or not; etc. For these check points we use rubric.json format. It is a list of rules you define, to teach agent how to think like a domain professor / PI. You can now define the following for each criterion in a task’s rubric.json: 
+
+- Whether it is a blocker or a non-blocker
+- Its weight, representing its level of importance.
+
+The final verifier consists of two parts:
+- test.sh, which contains programmatic verification logic.
+- rubric.json, which evaluates the agent’s trajectory and final outputs for behavioral alignment and covers outcomes that are difficult to verify programmatically, such as deep-research reports.
+
+Each rubric criterion can be either a blocker or a non-blocker. All blocker criteria must pass for the agent to receive any reward. Once all blockers pass, the agent’s final score is calculated as the weighted average of the non-blocker criteria.
 
 ### 4. Research and internet tasks
 
