@@ -162,9 +162,40 @@ Report multiple trials per condition, not a single run. If a trial set was cut s
 
 ## Rubric review results (reviewer agent)
 
-<!-- Encouraged but not required by CI: per-criterion pass/fail from the
-post-verify rubric reviewer, as in the reference PR. Ask a maintainer to run it
-if you cannot. -->
+<!-- Encouraged but not required by CI: grade every benchmarked rollout with
+the detached rubric reviewer —
+
+    bench review <rollout-dir> -r tasks/<task-id>/verifier/rubric.json
+
+— and report the results in the two tables below, one column per run. State
+the reviewer agent, model, sandbox, and network posture, confirm every review
+returned `review_valid: true`, and link the per-run `review_report.json`
+files with your artifacts. Worked example: PR #109. Ask a maintainer to run
+the reviewer if you cannot. -->
+
+Reviewer: `<agent>` / `<model>`, `<sandbox>`, `<network posture>`.
+
+<!-- Per-criterion table: blockers report pass/FAIL, scored criteria report
+0-2. Carry each criterion's weight in the row label, e.g. `(blocker, w8)` or
+`(w5)`. -->
+
+| Criterion | run-1 | run-2 | ... |
+|---|---|---|---|
+| `criterion_name` (blocker, w8) | pass | FAIL | ... |
+| `criterion_name` (w5) | 2/2 | 1/2 | ... |
+
+<!-- Aggregates per run: weighted points = sum(score x weight) over scored
+criteria; raw quality = weighted points / max; gated quality is 0 unless the
+deterministic reward is 1.0 and every blocker passes; decision is the
+publication band. -->
+
+| Aggregate | run-1 | run-2 | ... |
+|---|---|---|---|
+| weighted points | 53/78 | ... | ... |
+| raw quality | 67.9% | ... | ... |
+| failed blockers | none | ... | ... |
+| gated quality | 0% | ... | ... |
+| decision | not_publishable | ... | ... |
 
 ## Failure analysis
 
