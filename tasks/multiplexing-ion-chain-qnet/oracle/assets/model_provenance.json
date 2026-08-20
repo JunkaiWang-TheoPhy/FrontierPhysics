@@ -1,0 +1,19 @@
+{
+  "source_repository": "https://github.com/HaeffnerLab/integrated_photonics_bem",
+  "source_commit": "a58710a15d665b04fb8ffca98ea58c76feab9f43",
+  "stl_source_path": "examples/sqip/inter_results/htrap/htrap.stl",
+  "mesh_source_path": "examples/sqip/inter_results/htrap/htrap_el4_0.5_0.0001.pkl",
+  "stl_sha256": "d79517f36a46215cc852c452af47961b2374f3882efb717ef120dffe9593941f",
+  "panel_mesh_sha256": "c85d5f0b88b53bd99ff038fc4a454fc9e03f5322daa49eebd64d81fa4211a39f",
+  "mesh_units": "mm",
+  "rf_electrode_name": "RF",
+  "rf_stl_attribute": 5691,
+  "notebook_grid_center_mm": [
+    0.00375,
+    0.075,
+    -0.1
+  ],
+  "rf_drive_frequency_mhz": 39.15,
+  "rf_voltage_v": 80.0,
+  "ion_species": "40Ca+"
+}
