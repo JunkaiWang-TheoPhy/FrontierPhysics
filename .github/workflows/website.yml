@@ -3,8 +3,12 @@ name: website
 # Scoped to the website so unrelated task and doc changes do not pay for a
 # Node build. Deployment is handled by the host's own Git integration; this
 # workflow only proves the committed tree builds.
+#
+# PR runs use pull_request_target so the workflow definition and runner
+# routing come from the default branch (see ci.yml); the built tree is still
+# the PR merge result, checked out explicitly below.
 on:
-  pull_request:
+  pull_request_target:
     paths:
       - "website/**"
       - ".github/workflows/website.yml"
@@ -14,6 +18,9 @@ on:
       - "website/**"
       - ".github/workflows/website.yml"
 
+permissions:
+  contents: read
+
 jobs:
   build:
     runs-on: ${{ vars.CI_RUNNER }}
@@ -21,7 +28,11 @@ jobs:
       run:
         working-directory: website
     steps:
-      - uses: actions/checkout@v4
+      - name: Check out the code under test (for PRs, the merge result — unavailable until merge conflicts are resolved)
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'pull_request_target' && format('refs/pull/{0}/merge', github.event.pull_request.number) || '' }}
+          persist-credentials: false
       - uses: actions/setup-node@v4
         with:
           node-version: "22"

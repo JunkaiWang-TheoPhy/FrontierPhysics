@@ -4,8 +4,13 @@ name: pr-description
 # the form-formatted task information. Runs on `edited` too, so fixing the
 # description re-runs the check without a new push. Non-task PRs are skipped
 # by the script itself.
+#
+# Uses pull_request_target so the workflow definition, runner routing, and
+# the checker script all come from the default branch. This check only reads
+# PR metadata (the event payload and the changed-file list); the default
+# checkout of the base branch is deliberate — nothing from the PR tree runs.
 on:
-  pull_request:
+  pull_request_target:
     types: [opened, edited, reopened, synchronize]
 
 # The restricted default GITHUB_TOKEN carries contents: read only; listing the
