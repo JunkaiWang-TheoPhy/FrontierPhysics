@@ -8,7 +8,7 @@ on:
 
 jobs:
   validate-tasks:
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.CI_RUNNER }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -34,7 +34,7 @@ jobs:
   # Scoped this way the check is safe to promote to a required merge-queue
   # gate (see the main-merge-queue ruleset).
   lint:
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.CI_RUNNER }}
     steps:
       - uses: actions/checkout@v4
         with:
