@@ -84,14 +84,14 @@ Every task is evaluated in two stages, and you write the grader for each:
 1. **Deep research.** The agent studies the problem and commits to a research plan. A planning rubric you author grades that plan — the physics that must be modelled, the approximations that are defensible, the checks that catch a wrong turn early.
 2. **Execution.** The agent carries the plan out. The verifier checks that the final results are accurate.
 
-The rubric ships in the task package alongside the verifier; agree on its exact placement with a maintainer in your draft PR. 
+The rubric ships in the task package at `verifier/rubric.json`, alongside the verifier. 
 
 We acknowledge that there are some tasks in physics researchers' daily workflow that don't require deep research. For example, rewriting a Python repo in C. If you have this kind of tasks and they are hard enough, you are also welcome to contribute them! They have nearly the same structure as the two-stages tasks, just without the rubric.json file. For more information about the structure of task packages, please refer to the Task Package section below.
 
 # How to contribute
 1. **Ideate**: Pick a project that meets all three. Bring it to group chat or confirm with a maintainer before you build. See the [task ideation guide](docs/task-ideation.md) for the kinds of research subproblems that make good tasks.
 2. **Create**: Implement the task package, including the planning rubric. See `Task Package` below.
-3. **Test**: Run the oracle, then run a state-of-the-art agent with and without skills, over multiple trials.
+3. **Test**: Run the oracle, then run a state-of-the-art agent with no skills, over multiple trials. With-skill control runs are optional good-to-have evidence.
 4. **Submit**: Fork this repository and open a draft PR against `main` here as soon as the shape is there, then iterate with a maintainer. See [The final submission](#the-final-submission).
 
 Open the PR as a **draft** as soon as you have the task idea and a skeleton — do not wait until it is polished. Reviewing and revising a task takes days of back-and-forth, so iterating with a maintainer in a draft is both faster than guessing and the only reliable way to merge before a [timeline](#timeline) deadline.
@@ -104,12 +104,7 @@ tasks/<task-id>/
 ├── task.md
 ├── environment/
 │   ├── Dockerfile
-│   ├── <bundled inputs>
-│   └── skills/   # Not necessary to have
-│       └── <skill-name>/
-│           ├── SKILL.md
-│           ├── references/
-│           └── scripts/
+│   └── <bundled inputs>
 ├── oracle/
 │   └── solve.sh
 └── verifier/
@@ -131,8 +126,10 @@ Here are some rules for writing the prompt:
 ## rubric.json
 The item-by-item list of rubrics that describe the expectations from the researchers. It mainly focuses on the deep research part that is not verifiable via code scripts. It can include the key papers that the agent should find when doing literature review, key caveats or plans for doing an experiment that the agent should realize, etc.
 
+Since benchflow 0.7.5, every criterion in `rubric.json` follows a fixed schema: `{name, blocker: 0|1, weight, description, guidance}` — blocker criteria gate the result, weighted criteria score it. See the canonical example [tasks/multiplexing-ion-chain-qnet/verifier/rubric.json](tasks/multiplexing-ion-chain-qnet/verifier/rubric.json) ([PR #109](https://github.com/benchflow-ai/FrontierPhysics/pull/109)).
+
 ## environment/
-As shown above, an `environment/` folder contains the Dockerfile, inputs, and skills. The Dockerfiles create a Docker environment for agents in which it'll work to solve the task. If the task requires inputs (e.g., data, reference, examples, etc.), put these under the environment/inputs/ folder. `environment/skills` contain mentoring skills for agents that help them with the task.
+As shown above, an `environment/` folder contains the Dockerfile and inputs. The Dockerfiles create a Docker environment for agents in which it'll work to solve the task. If the task requires inputs (e.g., data, reference, examples, etc.), put these under the environment/inputs/ folder.
 
 Guidelines for Dockerfile:
 
@@ -140,15 +137,12 @@ Guidelines for Dockerfile:
 - Pin Python packages to exact versions.
 - Bundle reproducible inputs in `environment/`.
 
-Guidelines for skills:
-- Skills should contain reusable domain guidance, not task-specific answers.
-- Explain non-obvious workflow knowledge, schemas, formulas, standards, or tools.
-- Reuse scripts and references that would help on more than one task.
-- Stay focused; split long details into `references/`.
-- Avoid mentioning the exact output answer or task-specific filenames unless the
-  filename is a real reusable interface.
-- Do not bake skills into agent home directories. BenchFlow injects skills at
-  runtime when `--skill-mode with-skill --skills-dir ...` is used.
+Skills are a development-time control only. The final experiment provides no
+skills to the agent, and the final task package must not contain
+`environment/skills/`. While developing, you may keep mentor skills outside the
+task package and inject them at runtime with
+`--skill-mode with-skill --skills-dir ...`; never bake them into the Docker
+image, and remove them from the package before marking the PR ready for review.
 
 ## oracle/
 `oracle/solve.sh` is the held-out reference solution. It must be human-written
@@ -176,10 +170,10 @@ Verifier rules:
 Every PR is evaluated against the [task-review skill](.agents/skills/task-review/). Reviewers look for:
 
 - **Authenticity**: real scenario, real data where possible, human-authored task prompt and oracle.
-- **Skill quality**: accurate, reusable, useful beyond this task.
+- **Deliverables**: only the files you would submit for peer review or proudly present (`paper.pdf`, `report.pptx`, result data) — no process files like `PLAN.md`.
 - **Verification**: deterministic, outcome-based, anti-cheat aware, covering both stages — the planning rubric and the execution verifier.
 - **Instructions**: concise, fair, no skill hints.
-- **Environment**: reproducible Docker image, pinned deps, no leaked skills.
+- **Environment**: reproducible Docker image, pinned deps, no bundled skills.
 - **Complexity**: clears every minimum in [A detailed PR description](#2-a-detailed-pr-description) — two weeks, 40 working hours, 10 hours to reproduce — and agents without skills are likely to fail it.
 
 # The final submission
@@ -216,13 +210,13 @@ Before you open the PR, confirm all of these locally:
 
 1. `bench tasks check tasks/<task-id>` passes.
 2. `bench eval run --tasks-dir tasks/<task-id> --agent oracle --sandbox docker` passes with reward 1.0.
-3. A state-of-the-art agent has been run both with and without skills, over multiple trials.
-4. The task prompt, oracle, skills, tests, and metadata are ready for human review.
+3. A state-of-the-art agent has been run with no skills, over multiple trials. (With-skill control runs are optional good-to-have evidence.)
+4. The task prompt, oracle, tests, and metadata are ready for human review.
 
 Then report what you actually ran:
 
 - oracle result, showing reward 1.0;
-- a table of agent runs — agent, model, with-skill and no-skill pass rates over multiple trials, not a single run;
+- a table of agent runs — agent, model, no-skill pass rates over multiple trials, not a single run (plus any optional with-skill control runs);
 - failure analysis: whether failures came from scientific reasoning, environment or tooling, instructions, formatting, or verifier behaviour;
 - artifacts for any multimodal or binary outputs;
 - anything you discovered while building it that a reviewer or future contributor should know — a leaky environment, a brittle tolerance, a metric that turned out uninformative.

@@ -18,8 +18,7 @@ normal description; the check skips them.
 <!-- What advanced physics workflow does this task represent, and who performs
 this work professionally? What real project is it derived from (paper,
 experiment, dataset — cite it), and which part of that project does the task
-reproduce? Why is it hard, and what does the with/without-skills comparison
-teach? -->
+reproduce? Why is it hard for a state-of-the-art agent? -->
 
 ## Task history
 
@@ -89,7 +88,9 @@ in enough detail for a reviewer to judge the deep-research stage. -->
 ### Deep-research prompt
 
 <!-- How you would prompt a highly capable agent to do the literature research
-and write `PLAN.md` — usually the research part of `task.md`, quoted verbatim. -->
+and commit to a research plan — usually the research part of `task.md`, quoted
+verbatim. The plan is graded from the trajectory and the final deliverables;
+do not require a `PLAN.md` file. -->
 
 ### Rubric: papers to find
 
@@ -115,8 +116,9 @@ implementing before planning, ...). -->
 
 ### Workspace environment
 
-<!-- What `environment/` bundles and what lands in the agent workspace; state
-that skills are runtime-injected, never baked into the image. -->
+<!-- What `environment/` bundles and what lands in the agent workspace. Final
+packages ship no bundled skills; any development-time skills are
+runtime-injected, never baked into the image or committed to the package. -->
 
 ### Software environment
 
@@ -139,13 +141,13 @@ unchecked and add a paragraph starting with "Deliberately unchecked" explaining
 why — the CI check requires one or the other. -->
 
 - [ ] `task.md` prompt body is concise, human-authored and outcome-focused
-- [ ] `rubric.json` all the items are human-authored with reference source information attached
+- [ ] `rubric.json` all the items are human-authored with reference source information attached, shaped `{name, blocker, weight, description, guidance}`
 - [ ] `oracle/solve.sh` and oracle logic are human-authored
 - [ ] `bench tasks check tasks/<task-id>` passes
 - [ ] Oracle reaches reward `1.0`
 - [ ] Verifier checks outcomes, not implementation or skill usage
 - [ ] Rubric grades the deep-research and planning stage, both traj and output files
-- [ ] Skills (if any) contain no hardcoded final answers or verifier internals
+- [ ] The package ships no `environment/skills/`, and deliverables include no process files like `PLAN.md`
 - [ ] Dockerfile does not bake skills into the agent image
 - [ ] Source, data, code, and license provenance are documented
 - [ ] Trajectories and output artifacts were inspected

@@ -59,7 +59,6 @@ tasks/<task-id>/
   task.md
   environment/
     Dockerfile
-    skills/   # If need any
   oracle/
     solve.sh
   verifier/

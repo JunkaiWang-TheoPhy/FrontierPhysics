@@ -4,6 +4,14 @@ A task prompt is a research brief for a capable colleague. Preserve the
 scientific objective while removing lab-notebook fragments, solution hints,
 grader details, and implementation-specific commentary.
 
+A FrontierPhysics `task.md` body has two stages — Research & Plan, then
+Experiment & Implementation — ending with the deliverables list (canonical
+example: `tasks/multiplexing-ion-chain-qnet/task.md`). Deliverables are only
+paper-submission or presentable artifacts (`paper.pdf`, `report.pptx`, result
+data) — never process files like `PLAN.md`. The research stage is a concise
+brief graded by `verifier/rubric.json`; the anatomy below applies to the
+implementation stage.
+
 ## Required anatomy
 
 1. **Context:** the physical system or research question.
@@ -15,10 +23,12 @@ grader details, and implementation-specific commentary.
 5. **Acceptance-relevant constraints:** precision, sample count, time window,
    reproducibility, or required diagnostics.
 
-## Prompt versus mentor skill
+## Prompt versus development-time mentor skill
 
-The prompt defines the problem. The mentor skill explains a reliable way to
-solve it.
+The prompt defines the problem. A mentor skill — an optional development-time
+control, never shipped in the final package — explains a reliable way to solve
+it. In the final experiment the agent gets only the prompt, so everything in
+the skill column is exactly what the task measures.
 
 Keep these in the prompt:
 
@@ -27,7 +37,7 @@ Keep these in the prompt:
 - model assumptions needed to make the problem well-defined;
 - output paths and schemas.
 
-Keep these in the mentor skill:
+Keep these out of the prompt (in a development-time skill, if you use one):
 
 - recommended algorithms and software;
 - derivations and implementation recipes;

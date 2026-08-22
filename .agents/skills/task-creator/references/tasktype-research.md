@@ -16,7 +16,8 @@ scientific evidence rather than running a supplied numerical model.
 - Prefer DOI, arXiv ID, dataset accession, software release, or archived URL.
 - Name a cutoff date when the evidence set can change.
 - Bundle small or fragile sources.
-- Allow agent-side internet only when source discovery is part of the task.
+- Agent-side internet is the default (`sandbox.network_mode: public`);
+  withhold or block only the sources that contain the direct answer.
 - Never use live internet in the verifier for ground truth.
 
 ## Oracle and verifier
@@ -29,7 +30,7 @@ If an LLM judge is unavoidable, use a short evidence-grounded rubric and a
 human-labeled validation set. The judge must treat agent output as evidence,
 not as instructions.
 
-## Mentor skills
+## Mentor skills (development-time control)
 
 Mentor guidance should explain source hierarchy, search strategy, common
 notation mismatches, and evidence-quality checks. It must not list the final

@@ -1,6 +1,6 @@
 ---
 name: task-creator
-description: FrontierPhysics task authoring workflow. Use when converting an advanced physics research problem into a native BenchFlow task package, writing mentor skills, building a scientific oracle/verifier, or preparing a FrontierPhysics pull request.
+description: FrontierPhysics task authoring workflow. Use when converting an advanced physics research problem into a native BenchFlow task package, writing the two-stage task.md and planning rubric, building a scientific oracle/verifier, or preparing a FrontierPhysics pull request.
 ---
 
 # FrontierPhysics task authoring
@@ -8,19 +8,28 @@ description: FrontierPhysics task authoring workflow. Use when converting an adv
 Produce a runnable task under `tasks/<task-id>/` plus evidence for a reviewed
 pull request.
 
+Read [../task-review/goodtask-frontierphysics.md](../task-review/goodtask-frontierphysics.md)
+first — it defines the bar every task is reviewed against — together with
+[../task-review/POLICY-UPDATES.md](../task-review/POLICY-UPDATES.md), the dated
+policy decisions that supersede the frozen review documents. The canonical
+example is `tasks/multiplexing-ion-chain-qnet` (PR #109).
+
 ## Workflow
 
 1. Propose the authentic physics workflow, practitioner, inputs, outputs, and
    verification plan.
 2. Scaffold a native BenchFlow task package.
-3. Preserve or write the human-authored prompt.
+3. Preserve or write the human-authored two-stage prompt (Research & Plan,
+   then Experiment & Implementation).
 4. Build a reproducible environment with frozen inputs.
 5. Write outcome-based, tolerance-aware tests.
-6. Write a human-authored oracle that derives the result.
-7. Add one or more mentor skills.
-8. Validate structure and run the oracle.
-9. Run a strong agent without skills and with skills.
-10. Audit trajectories and submit a PR.
+6. Write the human-authored planning rubric (`verifier/rubric.json`).
+7. Write a human-authored oracle that derives the result.
+8. Optionally write development-time mentor skills, kept outside the package.
+9. Validate structure and run the oracle.
+10. Run a strong agent with no skills over multiple trials (with-skill control
+    runs optional).
+11. Audit trajectories and submit a PR.
 
 ## Package
 
@@ -29,32 +38,44 @@ tasks/<task-id>/
 ├── task.md
 ├── environment/
 │   ├── Dockerfile
-│   ├── <inputs>
-│   └── skills/
+│   └── <inputs>
 ├── oracle/
 │   └── solve.sh
 └── verifier/
+    ├── rubric.json
     ├── test.sh
     └── test_outputs.py
 ```
 
 ## Prompt
 
-- Human-authored.
+- Human-authored and concise, in two stages: Research & Plan, then Experiment
+  & Implementation, ending with the deliverables list.
 - State the physical objective, artifacts, units, conventions, and constraints.
 - Use absolute paths.
 - Do not mention skill names or grader details.
 - Describe the outcome rather than the mentor recipe.
 - Anchor mutable data to an immutable snapshot or cutoff date.
+- Deliverables are only the files you would submit for peer review or proudly
+  present (`paper.pdf`, `report.pptx`, result data) — never process files like
+  `PLAN.md`.
+
+Read [references/instruction-anatomy.md](references/instruction-anatomy.md).
 
 ## Environment
 
 - Prefer `python:3.12-slim`.
 - Pin Python dependencies.
 - Bundle stable scientific inputs and provenance.
+- Default `sandbox.network_mode: public` so the deep-research stage can search
+  the literature; keep verifier ground truth offline, and withhold or block
+  only the sources that contain the direct answer.
 - Pre-create `/app` and agent home directories.
 - Never copy skills, oracle, verifier, expected outputs, or answer keys into the
   image.
+
+Read [references/time-invariance.md](references/time-invariance.md) before
+freezing data or naming cutoff dates.
 
 ## Verifier
 
@@ -75,16 +96,34 @@ task-family guide:
 - [literature-grounded research](references/tasktype-research.md);
 - [scientific artifacts and multimodal outputs](references/tasktype-multimodal.md).
 
+## Rubric
+
+`verifier/rubric.json` grades the research-and-planning stage from the
+trajectory and the final deliverables — the parts a test script cannot check:
+papers found, key physics insights, method soundness, behaviors to avoid.
+Every criterion is human-authored, backed by a reference source, and follows
+the benchflow 0.7.5 schema `{name, blocker: 0|1, weight, description,
+guidance}`: all blockers must pass for any reward, then the weighted criteria
+score the rest. Start from
+[assets/rubric.json.template](assets/rubric.json.template); the canonical
+example is `tasks/multiplexing-ion-chain-qnet/verifier/rubric.json`.
+
 ## Oracle
 
 The oracle must be human-authored and derive the result through a legitimate
 scientific workflow. It runs without skills. Record the provenance of papers,
 data, meshes, source repositories, commits, models, and constants.
 
+Read [references/oracle-patterns.md](references/oracle-patterns.md).
+
 ## Mentor skills
 
-Every task includes at least one mentor skill. FrontierPhysics intentionally
-allows task-specific coaching.
+Mentor skills are an optional development-time control: the final package
+ships none — no `environment/skills/` in the submitted task — and the final
+experiment provides no skills to the agent. Keep any skills outside
+`tasks/<task-id>/` and inject them at runtime for control runs.
+FrontierPhysics intentionally allows task-specific coaching in that control
+condition.
 
 A good mentor skill may:
 
@@ -123,9 +162,13 @@ bench eval run \
 
 Oracle reward must be `1.0`.
 
+`scripts/preflight.sh tasks/<task-id>` runs the structural lint, the static
+policy checks (no bundled skills, no `PLAN.md` deliverables, 0.7.5 rubric
+schema, common antipatterns), and the oracle in one shot.
+
 ## Agent conditions
 
-Run the same strong current model and settings in both conditions:
+Run a strong current model with no skills, over multiple trials:
 
 ```bash
 bench eval run --tasks-dir tasks/<task-id> \
@@ -133,30 +176,37 @@ bench eval run --tasks-dir tasks/<task-id> \
   --skill-mode no-skill \
   --sandbox docker \
   --jobs-dir jobs/<task-id>-no-skill
+```
 
+Optionally, run a with-skill control with the same model and settings,
+injecting your development-time skills from outside the package:
+
+```bash
 bench eval run --tasks-dir tasks/<task-id> \
   --agent <agent> --model <model> \
   --skill-mode with-skill \
-  --skills-dir tasks/<task-id>/environment/skills/ \
+  --skills-dir <your-dev-skills-dir> \
   --sandbox docker \
   --jobs-dir jobs/<task-id>-with-skill
 ```
 
-No-skill pass rate is the benchmark result. The with-skill run is a control and
-should pass for at least one strong agent before merge. If it does not, inspect
-the task, dependencies, mentor recipe, verifier, and trajectory before claiming
-the task exceeds agent capability.
+No-skill pass rate is the benchmark result; the with-skill run is optional
+good-to-have evidence. If a control run fails, inspect the task, dependencies,
+mentor recipe, verifier, and trajectory before claiming the task exceeds agent
+capability.
 
 ## Submission
 
-The PR must include:
+The PR description must follow `.github/PULL_REQUEST_TEMPLATE.md` (every form
+section, the effort table, and the checklist) and include:
 
 - motivation and physics provenance;
 - oracle reward and verifier summary;
-- no-skill result;
-- with-skill control result;
+- no-skill results over multiple trials;
+- with-skill control results (optional);
 - exact agent/model/reasoning settings;
 - trajectory-based failure analysis;
+- rubric items with their reference sources;
 - preserved scientific artifacts.
 
 Invoke the sibling `task-review` skill as a final self-review.

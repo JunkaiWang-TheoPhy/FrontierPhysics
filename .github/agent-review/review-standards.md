@@ -8,7 +8,11 @@ This document complements — and defers to — the task-review skill
 its policy rubric, track routing, benchmark matrix, and report format.
 Where the two overlap they are meant to agree; if they ever diverge, the
 skill and CONTRIBUTING.md are authoritative (see also the preamble below,
-which says the same about repository rules generally).
+which says the same about repository rules generally) — except on the areas
+enumerated in §0 and .agents/skills/task-review/POLICY-UPDATES.md (bundled
+skills, PLAN.md-style deliverables, the rubric.json schema, the
+acceptance-evidence matrix), where the skill is a frozen early reference and
+current policy governs.
 
 Two consumers:
 - The automated first-pass review (.github/workflows/agent-review.yml)
@@ -26,6 +30,36 @@ Your goal is **not merely to make CI pass** and not merely to confirm that the o
 Treat the current repository rules (`CONTRIBUTING.md`, task-review skills/rubrics, schemas, validators, and current merged reference tasks) as authoritative. Do not impose requirements from another repository or another version of a review rubric unless they are actually operative here. If repository-wide policy is ambiguous or still under development, distinguish that from task-specific defects rather than turning it into a blocker arbitrarily.
 
 Review the **current PR head only**. Historical runs, comments, or results from earlier commits are useful context but do not establish acceptance for a changed task.
+
+---
+
+# 0. Current final-package policy (2026-08)
+
+These weekly-sync decisions are current repository policy (issue #142;
+canonical example: `tasks/multiplexing-ion-chain-qnet`, PR #109). Where an
+older section of this document or of the frozen task-review skill disagrees,
+this section governs; the same list is mirrored for human reviewers in
+`.agents/skills/task-review/POLICY-UPDATES.md`.
+
+* **No bundled skills in the final package.** The final experiment provides no
+  skills to the agent, and a final task package contains no
+  `environment/skills/`. Skills remain a legitimate development-time control —
+  runtime-injected via `--skill-mode with-skill --skills-dir ...`, never baked
+  into the image — and must be removed before merge.
+* **No process-file deliverables.** Final deliverables are only the files one
+  would submit for peer review or proudly present (`paper.pdf`, `report.pptx`,
+  result data) — never process files such as `PLAN.md`. Planning quality is
+  graded from the trajectory and the final deliverables via `rubric.json`, not
+  from a shipped plan file, and the verifier must not assert on one.
+* **benchflow 0.7.5 rubric schema.** Every `rubric.json` criterion is shaped
+  `{name, blocker: 0|1, weight, description, guidance}`; blocker criteria
+  gate, weighted criteria score.
+* **Acceptance evidence is no-skill.** Required matrix: oracle reward 1.0 at
+  the final head plus multiple no-skill trials of a strong agent at that same
+  head. With-skill control runs are welcome, optional evidence — their absence
+  is never a finding.
+* **Concise, handwritten `task.md`**, with `network_mode: public` as the
+  default posture, per the canonical example.
 
 ---
 
@@ -51,7 +85,7 @@ For example, if the true difficulty is:
 * designing a stable experiment,
 * or handling a resource tradeoff,
 
-then the verifier, oracle, rubric, and mentor skill should all be aligned with that difficulty.
+then the verifier, oracle, rubric, and any development-time mentor skill should all be aligned with that difficulty.
 
 Explicitly state:
 
@@ -144,7 +178,7 @@ Look specifically for:
 * rubric expects literature or tools the environment cannot access;
 * schema permits outputs that the verifier cannot safely handle;
 * verifier expects fields not clearly required in the task;
-* PR description lists papers or requirements inconsistent with `PLAN.md` or `rubric.json`.
+* PR description lists papers or requirements inconsistent with `rubric.json`.
 
 ---
 
@@ -496,8 +530,10 @@ keep the responsibilities clear.
 
 A sensible split is:
 
-* verifier checks that required planning artifacts exist and are nonempty/valid;
-* rubric evaluates their scientific quality.
+* the rubric grades planning quality from the trajectory and the final
+  deliverables (per §0, no process file such as `PLAN.md` may be required or
+  shipped as a deliverable);
+* the verifier checks the final scientific deliverables.
 
 Do not force rubric scores into pytest unless repository policy explicitly requires that.
 
@@ -546,6 +582,11 @@ Check whether:
 ---
 
 # 16. Mentor skills must teach method, not encode answers
+
+Per §0, mentor skills are a development-time control only: the final package
+ships none, and `environment/skills/` in a final task package is a blocker.
+Apply this section when a PR still carries development-time skills or when
+reviewing optional with-skill control runs.
 
 Review every injected skill.
 
@@ -627,10 +668,10 @@ Do not combine runs from different commits once any behaviorally meaningful part
 
 At one unchanged head, obtain the evaluation matrix required by current repository policy.
 
-At minimum, if this repository currently expects it:
+At minimum, per current policy (§0):
 
-* at least one strong with-skill solvability pass;
 * three no-skill trials under identical model/settings;
+* optionally, with-skill control runs — welcome evidence, never required;
 * same task commit;
 * same model;
 * same reasoning effort;
@@ -662,7 +703,7 @@ A benchmark result is more informative when you understand **why** the agent pas
 
 For each important run, inspect:
 
-* `PLAN.md`;
+* the planning portion of the trajectory;
 * final answer;
 * generated pipeline;
 * trajectory/tool calls;
@@ -678,7 +719,7 @@ For no-skill failures ask:
 * Give up due to runtime?
 * Fail formatting despite correct science?
 
-For with-skill passes ask:
+For optional with-skill control passes (if any) ask:
 
 * Did the skill actually change the scientific strategy?
 * Did it merely provide an answer-shaped shortcut?
@@ -706,8 +747,8 @@ What matters is that:
 If results look like:
 
 ```text
-no-skill:   pass / fail / fail
-with-skill: pass / pass / pass
+no-skill (required):          pass / fail / fail
+with-skill (optional control): pass / pass / pass
 ```
 
 that may be excellent calibration if trajectory inspection shows the difference comes from the targeted scientific methodology.
@@ -782,7 +823,6 @@ Cross-check all of the following:
 * `task.md`;
 * `rubric.json`;
 * `literature.md`;
-* oracle `PLAN.md`;
 * verifier contract;
 * reference answer;
 * reported local runs;
@@ -851,7 +891,9 @@ Examples:
 * core requested deliverable is not graded;
 * current-head acceptance matrix is missing;
 * task-relevant CI fails;
-* agent can obtain high reward without solving the problem.
+* agent can obtain high reward without solving the problem;
+* final package bundles skills, requires process-file deliverables like
+  `PLAN.md`, or uses a pre-0.7.5 rubric schema (§0).
 
 ## SIGNIFICANT
 
@@ -962,8 +1004,8 @@ Give:
 
 * commit;
 * model/settings;
-* with-skill runs;
-* no-skill runs;
+* no-skill runs (required);
+* with-skill control runs (if any);
 * invalid infrastructure runs;
 * rewards;
 * times;

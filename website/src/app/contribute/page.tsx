@@ -89,8 +89,7 @@ const SUBMISSION = [
     body: "What you ran and what happened, across multiple trials rather than a single run. Example task: PR #23 in the task repository.",
     checks: [
       "The oracle passes with reward exactly 1.0",
-      "Results for a state-of-the-art agent with skills",
-      "Results for the same agent without skills",
+      "No-skill results for a state-of-the-art agent, over multiple trials",
     ],
   },
 ];

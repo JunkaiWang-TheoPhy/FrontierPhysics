@@ -1,0 +1,25 @@
+{
+  "criteria": [
+    {
+      "name": "bottleneck_identified",
+      "blocker": 1,
+      "weight": 8,
+      "description": "Category: research. Evidence: paper.pdf and trajectory.",
+      "guidance": "Pass only if the paper identifies <the dominant physical bottleneck> quantitatively and attributes it correctly. Fail if it is never quantified or is attributed elsewhere. Back this expectation with a reference source in the PR description."
+    },
+    {
+      "name": "scheme_comparison",
+      "blocker": 0,
+      "weight": 5,
+      "description": "Category: research. Evidence: paper.pdf.",
+      "guidance": "Score 2: at least <N> concrete schemes compared with physically sound tradeoffs and a selection consistent with the stated constraints. Score 1: schemes listed without real analysis. Score 0: missing or unsound."
+    },
+    {
+      "name": "literature_grounding",
+      "blocker": 0,
+      "weight": 5,
+      "description": "Category: research. Evidence: paper.pdf references and trajectory.",
+      "guidance": "Key sources: <stable identifiers - arXiv ID, DOI, repository>. Score 2: at least <N> found in the trajectory and used correctly in the references. Score 1: only generic reviews. Score 0: missing or irrelevant."
+    }
+  ]
+}

@@ -8,11 +8,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl && \
     rm -rf /var/lib/apt/lists/*
 
-# Pin every scientific dependency to an exact version.
+# Pin every scientific dependency to an exact version. pytest-json-ctrf must be
+# installed at build time (a runtime install in test.sh is too late — bench's
+# pre-verifier blocks plugin auto-discovery) and declared in task.md as
+# `verifier.pytest_plugins: ["ctrf"]`.
 RUN pip install --no-cache-dir \
     numpy==1.26.4 \
     scipy==1.13.1 \
-    pytest==8.4.1
+    pytest==8.4.1 \
+    pytest-json-ctrf==0.3.5
 
 WORKDIR /app
 
@@ -25,5 +29,6 @@ RUN mkdir -p /app /home/agent/.claude /home/agent/.codex /home/agent/.opencode /
 # Bundled inputs. Frozen test fixtures, not live data.
 COPY input.npz /root/input.npz
 
-# DO NOT bake skills here. `bench eval run --skill-mode with-skill --skills-dir <skills-dir>` injects them at deploy time.
+# DO NOT bake skills here. Final packages ship no skills; development-time skills are
+# injected at deploy time via `bench eval run --skill-mode with-skill --skills-dir <skills-dir>`.
 # If you copy them in, the without-skills experiment becomes a no-op.

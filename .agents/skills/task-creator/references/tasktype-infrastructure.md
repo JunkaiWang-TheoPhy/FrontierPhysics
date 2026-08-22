@@ -31,7 +31,7 @@ Exercise the real configuration or control surface where possible. Check:
 - job completion and scientific output integrity;
 - absence of unauthorized network or filesystem side effects.
 
-## Mentor skills
+## Mentor skills (development-time control)
 
 Mentor guidance may contain exact setup and recovery procedures. It may not
 contain a precomputed accepted configuration whose only purpose is to be copied

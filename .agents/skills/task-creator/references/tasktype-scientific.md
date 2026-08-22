@@ -33,7 +33,7 @@ Use independent recomputation and physical checks. Good anchors include:
 Use tolerance bands justified by numerical or experimental variation. A wrong
 primary result should fail even if secondary output structure is correct.
 
-## Mentor skills
+## Mentor skills (development-time control)
 
 The control skill may prescribe algorithms, derivations, software setup, and
 diagnostics. It may bundle parameterized solver helpers or derived

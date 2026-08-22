@@ -15,7 +15,9 @@ software whose correctness is defined by physics or numerical behavior.
 
 - Bundle a source snapshot pinned to a commit.
 - Include lockfiles and exact compiler/runtime versions.
-- Keep network access off unless dependency retrieval is part of the task.
+- The sandbox defaults to `network_mode: public` for the research stage; pin
+  the source snapshot and check that no upstream fix, issue thread, or newer
+  commit leaks the answer.
 - Remove solved patches and upstream issue breadcrumbs from accessible Git
   history.
 

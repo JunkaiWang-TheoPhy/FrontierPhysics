@@ -3,6 +3,16 @@
 The verifier should distinguish correct physics from plausible shortcuts
 without requiring the oracle's exact implementation.
 
+## Deterministic tests versus the rubric
+
+`test.sh` + `test_outputs.py` check deterministic outcomes: output values, CSV
+cells, artifact structure. The research-and-planning quality no script can
+check — literature found, key physics insights, method soundness — is graded
+by `verifier/rubric.json` (benchflow 0.7.5 schema `{name, blocker: 0|1,
+weight, description, guidance}`; blockers gate any reward, weighted criteria
+score the rest) against the trajectory and the final deliverables. Do not
+force rubric judgments into pytest.
+
 ## Test structure
 
 Target 4–10 focused tests:
@@ -75,8 +85,10 @@ and machine-readable test output.
 Capture the test runner's exit code before any later command:
 
 ```bash
-python3 -m pytest /verifier/test_outputs.py -rA -v \
-  > /logs/verifier/output.txt 2>&1
+python3 -m pytest \
+  -p no:cacheprovider \
+  --ctrf /logs/verifier/ctrf.json \
+  /verifier/test_outputs.py -rA -v > /logs/verifier/output.txt 2>&1
 RC=$?
 
 if [ "$RC" -eq 0 ]; then

@@ -4,7 +4,8 @@
 # Usage: preflight.sh <task_dir>
 #
 #   1. bench tasks check          - structural lint
-#   2. Static checks for the three common task-authoring antipatterns
+#   2. Static policy checks (no bundled skills, no PLAN.md deliverables,
+#      0.7.5 rubric schema) plus the common task-authoring antipatterns
 #   3. bench eval run --agent oracle - oracle must reach reward=1.0
 #
 # Exits non-zero on any failure; safe in CI.
@@ -24,14 +25,40 @@ python3 .github/scripts/validate_repository.py || exit 1
 bench tasks check "$TASK_DIR" || exit 1
 
 echo
-echo "▶ static lint — common task antipatterns"
+echo "▶ static lint — policy checks and common task antipatterns"
 ERRORS=0
 DOCKERFILE="$TASK_DIR/environment/Dockerfile"
 TEST_SH="$TASK_DIR/verifier/test.sh"
+TASK_MD="$TASK_DIR/task.md"
+RUBRIC="$TASK_DIR/verifier/rubric.json"
+
+if [ -d "$TASK_DIR/environment/skills" ]; then
+  echo "  ✗ environment/skills/ present — final task packages ship no skills; keep development-time skills outside the package"
+  ERRORS=$((ERRORS+1))
+fi
+
+if grep -qiE 'PLAN\.md' "$TASK_MD" 2>/dev/null; then
+  echo "  ✗ task.md mentions PLAN.md — deliverables are paper-submission/presentable artifacts only, never process files"
+  ERRORS=$((ERRORS+1))
+fi
+
+if [ -f "$RUBRIC" ]; then
+  python3 - "$RUBRIC" <<'PY' || ERRORS=$((ERRORS+1))
+import json, sys
+rubric = json.load(open(sys.argv[1]))
+required = {"name", "blocker", "weight", "description", "guidance"}
+bad = [str(c.get("name", f"criterion #{i}"))
+       for i, c in enumerate(rubric.get("criteria", []))
+       if not required <= set(c) or c.get("blocker") not in (0, 1)]
+if bad:
+    print("  ✗ rubric.json criteria missing the benchflow 0.7.5 fields "
+          "{name, blocker: 0|1, weight, description, guidance}: " + ", ".join(bad))
+    sys.exit(1)
+PY
+fi
 
 if grep -qE '^WORKDIR\s+/root' "$DOCKERFILE" && ! grep -q 'mkdir.*-p.*/app' "$DOCKERFILE"; then
-  echo "  ✗ WORKDIR /root without 'mkdir -p /app' — pytest verifier will fail with 'Directory /app not found'"
-  ERRORS=$((ERRORS+1))
+  echo "  ⚠ WORKDIR /root without 'mkdir -p /app' — fine on benchflow >=0.7.5 (the canonical task uses WORKDIR /root); if the oracle fails with 'Directory /app not found', pre-create /app or pass an explicit --rootdir in test.sh"
 fi
 
 if grep -qE 'COPY\s+skills\s+/root/\.(claude|codex|opencode|agents)' "$DOCKERFILE"; then
