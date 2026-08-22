@@ -15,11 +15,10 @@ export const site = {
   /**
    * Onboarding form: unlocks the group chats, Google Drive, and GitHub repo.
    * The task repository is private, so the site never links it directly —
-   * every repo-shaped affordance routes here instead.
+   * every repo-shaped affordance routes here instead, including the
+   * "Contribute a task" buttons (the separate task form is retired).
    */
   joinForm: "https://forms.gle/BVxbGg8VbHsbpMxi9",
-  /** Task form for contributing by co-working with reviewers over email. */
-  taskForm: "https://forms.gle/v7p1dFAkyLonyjea8",
   benchflow: "https://github.com/benchflow-ai/benchflow",
   /** Prior work by the same team, cited as evidence the benchmark will ship. */
   skillsbenchPaper: "https://arxiv.org/abs/2602.12670",

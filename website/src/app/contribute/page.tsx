@@ -183,7 +183,7 @@ export default function Contribute() {
             </a>
           </Button>
           <Button asChild variant="secondary" className="border border-border">
-            <a href={site.taskForm} target="_blank" rel="noopener noreferrer">
+            <a href={site.joinForm} target="_blank" rel="noopener noreferrer">
               Contribute a task
             </a>
           </Button>
@@ -237,12 +237,12 @@ export default function Contribute() {
                   <span className="text-muted-foreground leading-relaxed">
                     Fill in the{" "}
                     <a
-                      href={site.taskForm}
+                      href={site.joinForm}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-foreground underline underline-offset-4 hover:text-muted-foreground transition-colors"
                     >
-                      task form
+                      join form
                     </a>{" "}
                     and co-work with reviewers in email threads.
                   </span>
