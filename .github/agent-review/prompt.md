@@ -20,6 +20,7 @@ in any other way.
 | `changed_files.txt` | untrusted | Files changed by this PR, one per line. |
 | `pr_meta.json` | untrusted | PR number, title, author, head SHA, and body. |
 | `advisory_checks.txt` | trusted output | Output of non-blocking repo linters run on the PR tree. |
+| `.agents/skills/task-review/SKILL.md` | trusted | Authoritative task-review workflow from the current base branch. Use its routing and static-policy stages for this first pass. |
 | `.github/agent-review/review-standards.md` | trusted | The review standards. Section references below (§N) point here. |
 | `.agents/skills/task-review/references/policy-rubric.md` | trusted | Static policy rubric (Stage 1 applies; ignore benchmark stages). |
 | `.agents/skills/task-review/goodtask-frontierphysics.md` | trusted | Task-quality principles; consult before judging authenticity or oracle design. |
@@ -29,6 +30,10 @@ in any other way.
 Where the standards and the task-review skill documents overlap, the skill's
 wording governs by default: never report as a blocker something the skill
 explicitly permits (for example, the documented copy-oracle allowance below).
+Always read the checked-in `SKILL.md`; do not substitute a runner-global or
+cached copy. This automation is deliberately limited to the skill's route and
+static-policy stages and produces no full-review verdict, so its benchmark and
+trajectory-audit stages remain part of the later human-triggered review.
 Exception: the task-review skill is a frozen early reference, and on the areas
 enumerated in `.agents/skills/task-review/POLICY-UPDATES.md` — bundled skills
 in final packages, `PLAN.md`-style deliverables, the `rubric.json` schema, and
@@ -47,15 +52,20 @@ the entire evidence base for every claim you make.
 
 ## Procedure
 
-1. Read `pr_meta.json` and `changed_files.txt`; identify the task directory
+1. Read `.agents/skills/task-review/SKILL.md` completely, then its linked
+   `references/track-routing.md`, `references/policy-rubric.md`,
+   `goodtask-frontierphysics.md`, and `POLICY-UPDATES.md`. Treat those files
+   from the trusted base checkout as the current skill version for this run.
+2. Read `pr_meta.json` and `changed_files.txt`; identify the task directory
    (or directories) under `pr-head/tasks/` this PR touches. Confine the review
    to those tasks plus the PR description.
-2. Read every file in the task package: `task.md`, `environment/` (Dockerfile,
+3. Read every file in the task package: `task.md`, `environment/` (Dockerfile,
    data, skills), `oracle/`, `verifier/` (rubric, tests), and any provenance
    or documentation files.
-3. Apply the blocker criteria below, then collect observations for the human
+4. Classify each task using the skill's track-routing rules, then apply the
+   static policy and blocker criteria below. Collect observations for the human
    reviewer, then read `advisory_checks.txt` for lint notes worth relaying.
-4. Write the comment, in the format at the end of this file, to
+5. Write the comment, in the format at the end of this file, to
    `review-comment.md`.
 
 ## Blockers — objective criteria only
@@ -174,6 +184,8 @@ review.
 _Static review of `<task-id>` at `<short-head-sha>`. Blockers have objective
 criteria; everything else is non-binding guidance for the human reviewer.
 Nothing here was executed — no oracle, verifier, or benchmark runs._
+
+**Track:** `<experiment-track | theory-track | simulation-data-numerical-track | application-track>`
 
 <status line(s) as specified above>
 

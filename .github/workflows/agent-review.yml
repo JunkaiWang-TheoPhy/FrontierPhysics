@@ -159,6 +159,10 @@ jobs:
           # the job log so failures are diagnosable. Remove once stable.
           show_full_output: true
           prompt: |
+            Use the task-review skill from the trusted base checkout at
+            .agents/skills/task-review/SKILL.md for its routing and static
+            policy stages. This is the bounded GitHub first-pass described in
+            .github/agent-review/prompt.md, not a complete benchmark verdict.
             Follow the review instructions in .github/agent-review/prompt.md
             for pull request #${{ github.event.pull_request.number }}.
             Maintainers to mention if and only if there are no blockers:
@@ -169,7 +173,7 @@ jobs:
           claude_args: |
             --model claude-opus-5
             --max-turns 100
-            --allowedTools "Read,Grep,Glob,Write"
+            --allowedTools "Read,Grep,Glob,Write,Skill(task-review)"
             --disallowedTools "Bash,Edit,NotebookEdit,WebFetch,WebSearch,Task"
 
       - name: Post review comment (sticky by marker)
