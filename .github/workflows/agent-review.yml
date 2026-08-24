@@ -218,9 +218,16 @@ jobs:
             ready=true
           fi
           if [ "$ready" = "true" ]; then
-            gh pr edit "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --add-label "$LABEL"
+            # Use the REST endpoint directly. `gh pr edit` queries the retired
+            # Projects (classic) GraphQL field before changing labels and now
+            # fails even though the workflow token has the required access.
+            jq -nc --arg value "$LABEL" '{labels:[$value]}' \
+              | gh api -X POST "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/labels" --input - > /dev/null
             echo "Label applied"
           else
-            gh pr edit "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --remove-label "$LABEL" || true
+            encoded_label=$(jq -rn --arg value "$LABEL" '$value | @uri')
+            gh api -X DELETE \
+              "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/labels/${encoded_label}" \
+              > /dev/null 2>&1 || true
             echo "Label absent or removed"
           fi
