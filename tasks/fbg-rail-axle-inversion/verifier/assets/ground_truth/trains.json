@@ -1,0 +1,114 @@
+[
+  {
+    "train_id": "T1",
+    "n_axles": 126,
+    "direction": 1,
+    "reverses": false,
+    "v_entry_mps": 18.0,
+    "v_exit_mps": 18.0,
+    "occupancy_s": [
+      100.0,
+      178.8406
+    ],
+    "accel_mps2": 0.0,
+    "note": "freight, mixed empty/loaded"
+  },
+  {
+    "train_id": "TS",
+    "n_axles": 14,
+    "direction": 0,
+    "reverses": true,
+    "v_entry_mps": 10.0,
+    "v_exit_mps": 10.0,
+    "occupancy_s": [
+      215.0,
+      355.0
+    ],
+    "accel_mps2": 0.0,
+    "note": "shunting work train: enters A, stops inside, reverses out"
+  },
+  {
+    "train_id": "T2",
+    "n_axles": 62,
+    "direction": 1,
+    "reverses": false,
+    "v_entry_mps": 36.0,
+    "v_exit_mps": 36.0,
+    "occupancy_s": [
+      380.0,
+      418.1083
+    ],
+    "accel_mps2": 0.0,
+    "note": "passenger, fast"
+  },
+  {
+    "train_id": "T3",
+    "n_axles": 102,
+    "direction": -1,
+    "reverses": false,
+    "v_entry_mps": 19.5,
+    "v_exit_mps": 19.5,
+    "occupancy_s": [
+      560.0,
+      628.6528
+    ],
+    "accel_mps2": 0.0,
+    "note": "freight, opposite direction"
+  },
+  {
+    "train_id": "T4",
+    "n_axles": 46,
+    "direction": 1,
+    "reverses": false,
+    "v_entry_mps": 12.5,
+    "v_exit_mps": 25.6466,
+    "occupancy_s": [
+      800.0,
+      862.5131
+    ],
+    "accel_mps2": 0.25,
+    "note": "passenger, accelerating out of station"
+  },
+  {
+    "train_id": "T5",
+    "n_axles": 86,
+    "direction": -1,
+    "reverses": false,
+    "v_entry_mps": 17.0,
+    "v_exit_mps": 17.0,
+    "occupancy_s": [
+      1080.0,
+      1155.5959
+    ],
+    "accel_mps2": 0.0,
+    "note": "freight, passes during solar thermal transient"
+  },
+  {
+    "train_id": "T6",
+    "n_axles": 4,
+    "direction": 1,
+    "reverses": false,
+    "v_entry_mps": 22.0,
+    "v_exit_mps": 22.0,
+    "occupancy_s": [
+      1300.0,
+      1346.5182
+    ],
+    "accel_mps2": 0.0,
+    "note": "track-inspection vehicle, calibration pass 1 (A->B)"
+  },
+  {
+    "train_id": "T6R",
+    "n_axles": 4,
+    "direction": -1,
+    "reverses": false,
+    "v_entry_mps": 22.0,
+    "v_exit_mps": 22.0,
+    "occupancy_s": [
+      1400.0,
+      1446.5182
+    ],
+    "accel_mps2": 0.0,
+    "note": "track-inspection vehicle, calibration pass 2 (B->A)"
+  }
+]

@@ -6,6 +6,11 @@
     "bench_version": ">=0.6.7,<0.7",
     "tasks": [
       {
+        "name": "fbg-rail-axle-inversion",
+        "path": "tasks/fbg-rail-axle-inversion",
+        "digest": "sha256:5d8c5bc2a2623c59c7bef51203ac842d3bff9e2fbc133b7a20617d62c6e7ae46"
+      },
+      {
         "name": "multiplexing-ion-chain-qnet",
         "path": "tasks/multiplexing-ion-chain-qnet",
         "digest": "sha256:9418e2ab7d2539980bbb5ef25873cc47931ed07f5e205b87e49f016386bbd388"
