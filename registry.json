@@ -14,6 +14,11 @@
         "name": "multiplexing-ion-chain-qnet",
         "path": "tasks/multiplexing-ion-chain-qnet",
         "digest": "sha256:9418e2ab7d2539980bbb5ef25873cc47931ed07f5e205b87e49f016386bbd388"
+      },
+      {
+        "name": "rydberg-cz-phase-noise-infidelity",
+        "path": "tasks/rydberg-cz-phase-noise-infidelity",
+        "digest": "sha256:ea77a7746a7afe27548b5fca2bd21230b25a4548fc4f70f14ce9ec59c957e590"
       }
     ]
   }

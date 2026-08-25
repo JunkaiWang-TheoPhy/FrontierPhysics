@@ -1,0 +1,74 @@
+{
+  "criteria": [
+    {
+      "name": "beatnote_to_phase_noise",
+      "blocker": 1,
+      "weight": 8,
+      "description": "Category: research. Evidence: paper.pdf methods and trajectory.",
+      "guidance": "Pass only if the agent derives the phase-noise PSD from the beat-note power spectrum by relating the single-sideband power at an offset to the carrier power, and states the convention it adopts (the ratio of sideband PSD to carrier power is one half of the one-sided phase-noise PSD under the usual convention; a different but explicitly stated and internally consistent convention is acceptable). It must then convert phase noise to frequency noise as offset-frequency-squared times the phase-noise PSD. Fail if the beat-note spectrum is used as a frequency-noise PSD directly, if the carrier normalization is skipped, or if the convention is never stated and the factors cannot be checked."
+    },
+    {
+      "name": "pdh_slope_and_cavity_rolloff",
+      "blocker": 1,
+      "weight": 8,
+      "description": "Category: research. Evidence: paper.pdf methods and trajectory.",
+      "guidance": "The PDH-derived spectrum is the one that feeds the gate calculation, so this conversion carries the reported answer. Pass only if all three of the following are handled and justified: the error-signal slope is used in V/Hz; the 50 ohm system impedance is applied, with the supplied slope of 1500 mV per 34 kHz recognized as an infinite-impedance oscilloscope measurement and halved for the analyzer load; and the slope is rolled off with the cavity response rather than treated as constant, k(f) = k0 / sqrt(1 + 4 (f/FWHM)^2) with FWHM = 68 kHz. Fail if the roll-off is ignored, if the impedance correction is skipped, or if the conversion is dimensionally wrong or unexplained. Each of these is a large multiplicative error, not a refinement: at the 8 MHz band edge the roll-off factor alone is more than two orders of magnitude."
+    },
+    {
+      "name": "frequency_doubling_factor",
+      "blocker": 1,
+      "weight": 8,
+      "description": "Category: research. Evidence: paper.pdf methods and the computed infidelity.",
+      "guidance": "The 840 nm light is frequency-doubled to 420 nm before driving the first leg of the Rydberg excitation. Pass only if the agent recognizes that doubling multiplies the frequency-noise PSD by four (the field's phase is doubled, so the PSD scales as the square of the harmonic order) and applies that factor before the fidelity integral. Fail if the measured 840 nm PSD is fed into the gate calculation unscaled, or if a factor of two is applied to the PSD instead of four."
+    },
+    {
+      "name": "gate_fidelity",
+      "blocker": 0,
+      "weight": 4,
+      "description": "Category: research. Evidence: paper.pdf and trajectory.",
+      "guidance": "Score 2: Agents are able to find the more accurate SOTA the so-called time-optimal gates that have been implemented experimentally, have fidelity at 99.7-99.8%. Score 0: Agent did not realize most recent gate fidelity is higher than 99.5%."
+    },
+    {
+      "name": "two_methods_compared",
+      "blocker": 0,
+      "weight": 6,
+      "description": "Category: research. Evidence: paper.pdf results and its two-panel figure.",
+      "guidance": "Score 2: both methods are derived independently, overlaid, and found to agree up to measurement noise and servo bumps, with the agent noting that servo-bump structure depends on the laser lock's PID settings; and the agent recognizes that the PDH-derived spectrum is the less noisy of the two and selects it as the input to the gate-fidelity calculation. Score 1: both derived and plotted but no comparison or no justified selection. Score 0: only one method attempted, or the two are reported as inconsistent without diagnosis."
+    },
+    {
+      "name": "frt_perturbative_framework",
+      "blocker": 1,
+      "weight": 8,
+      "description": "Category: research. Evidence: paper.pdf methods and trajectory.",
+      "guidance": "Pass only if the agent establishes that when phase noise is small it can be treated as a perturbation to the Hamiltonian, so gate infidelity becomes a linear functional of the noise power spectral density weighted by a gate-specific fidelity response function, and then evaluates that integral against the measured PSD. Fail if the agent instead runs an ad hoc Monte-Carlo phase-noise simulation without connecting it to the response-function framework, or asserts an infidelity without an integral over the measured spectrum."
+    },
+    {
+      "name": "bandwidth_caveat",
+      "blocker": 1,
+      "weight": 10,
+      "description": "Category: research. Evidence: paper.pdf discussion, and consistency with gate_infidelity.csv.",
+      "guidance": "This is the central scientific trap. The frequency-noise measurement extends only to 8 MHz, and the PSD of this laser is still approximately flat there rather than rolling off. Tsai et al. assume a spectrum that decays at high offset, which is what produces clean 1/Omega^2 infidelity scaling; that assumption does not hold for this data. Pass only if the agent (a) notices the measurement stops at 8 MHz, (b) states that the behavior above 8 MHz is an assumption and not a measurement, (c) makes that assumption explicit — for example bounding the answer between zero noise above 8 MHz and noise remaining flat well beyond it — and (d) does not present the high-Omega scaling as established physics when it is partly an artifact of truncating the integral. Fail if the integral is silently truncated at the last data point and the resulting steep scaling is reported without qualification, even if the number itself lands inside the accepted band."
+    },
+    {
+      "name": "literature_grounding",
+      "blocker": 0,
+      "weight": 6,
+      "description": "Category: research. Evidence: paper.pdf references and trajectory.",
+      "guidance": "Key sources: Tsai et al., PRX Quantum 6, 010331 (2025), 10.1103/PRXQuantum.6.010331 (fidelity response theory and the CZ response function, Appendix L); Evered et al., Nature 622, 268 (2023), 10.1038/s41586-023-06481-y (time-optimal high-fidelity Rydberg two-qubit gates); Evered et al., arXiv:2604.25987 (2026); Schmid, Weitenberg, Haensch, Udem and Ozawa, Simple phase noise measurement scheme for cavity-stabilized laser systems, Opt. Lett. 44, 2709 (2019), 10.1364/OL.44.002709 (extracting laser phase noise from a cavity-stabilized beat note). Score 2: at least three found and used substantively. Score 1: only generic reviews or a single source. Score 0: no citations or irrelevant ones."
+    },
+    {
+      "name": "paper_internally_consistent",
+      "blocker": 0,
+      "weight": 4,
+      "description": "Category: multimodal. Evidence: paper.pdf as a whole — both required figures, methods, and quoted numbers against each other and against gate_infidelity.csv.",
+      "guidance": "Judge the paper the agent produced. It must be a vector PDF with an introduction, derivation, results, and references, and the results must contain two figures.\n\nFirst figure, the noise spectra: two panels (phase noise and frequency noise) overlaying the beat-note-derived and PDH-derived curves, axes labeled with units. The single-sided frequency noise PSD should be mostly between 100 and 1000 Hz^2/Hz from 1 to 8 MHz. The single sideband phase noise PSD (which is the single-sided frequency noise PSD divided by 2*f^2) curve should be between -90 and -110dBc/Hz at 1MHz, and between -110 and -120 dBc/Hz at 8MHz. \n\nFigure B, the gate infidelity: infidelity against Rabi frequency over 1 to 10 MHz, labeled and legible. It must agree with gate_infidelity.csv — same range, same shape, same magnitude — since they are two presentations of one result. A curve that rises with Rabi frequency, or that disagrees visibly with the delivered CSV, is a fail regardless of how the CSV itself scored.\n\nScore 2: both figures satisfy the above, and the numbers quoted in the text match the figures, the stated conventions, and the CSV. Score 1: the physics is right but presentation is weak (e.g. no axes label). Score 0: neither figure present, raster screenshots rather than vector plots, curves that contradict the agent's own stated conventions or the anchors above, or major mistake in derivation / result presentation."
+    },
+    {
+      "name": "no_author_thesis_lookup",
+      "blocker": 1,
+      "weight": 6,
+      "description": "Category: anti-cheat. Evidence: trajectory and paper.pdf.",
+      "guidance": "The task derives from the author's PhD thesis, which is publicly retrievable and contains the worked answer including the final infidelity curve. Fail if the trajectory shows the agent locating or reading that thesis, or any derivative of it, and lifting results rather than deriving them. Retrieving the cited journal papers is expected and fine. Also fail if the agent reports an infidelity curve it did not compute from the supplied CSV traces."
+    }
+  ]
+}
