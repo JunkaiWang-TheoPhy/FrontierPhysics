@@ -84,9 +84,10 @@ Every task is evaluated in two stages, and you write the grader for each:
 1. **Deep research.** The agent studies the problem and commits to a research plan. A planning rubric you author grades that plan — the physics that must be modelled, the approximations that are defensible, the checks that catch a wrong turn early.
 2. **Execution.** The agent carries the plan out. The verifier checks that the final results are accurate.
 
-The rubric ships in the task package at `verifier/rubric.json`, alongside the verifier. 
-
-We acknowledge that there are some tasks in physics researchers' daily workflow that don't require deep research. For example, rewriting a Python repo in C. If you have this kind of tasks and they are hard enough, you are also welcome to contribute them! They have nearly the same structure as the two-stages tasks, just without the rubric.json file. For more information about the structure of task packages, please refer to the Task Package section below.
+The rubric ships in every task package at `verifier/rubric.json`, alongside the
+verifier. Tasks that emphasize execution over deep research are still welcome
+when they are authentic and difficult, but they use the same required rubric
+schema so the scientific work can be evaluated consistently.
 
 # How to contribute
 1. **Ideate**: Pick a project that meets all three. Bring it to group chat or confirm with a maintainer before you build. See the [task ideation guide](docs/task-ideation.md) for the kinds of research subproblems that make good tasks.
@@ -169,7 +170,7 @@ Verifier rules:
 
 Every PR is evaluated against the [task-review skill](.agents/skills/task-review/). Reviewers look for:
 
-- **Authenticity**: real scenario, real data where possible, human-authored task prompt and oracle.
+- **Authenticity**: real scenario, real data where possible, human-authored task prompt, rubric prose, and oracle. The automated first pass verifies the prompt and rubric prose with the GPTZero gate described below.
 - **Deliverables**: only the files you would submit for peer review or proudly present (`paper.pdf`, `report.pptx`, result data) — no process files like `PLAN.md`.
 - **Verification**: deterministic, outcome-based, anti-cheat aware, covering both stages — the planning rubric and the execution verifier.
 - **Instructions**: concise, fair, no skill hints.
@@ -225,32 +226,61 @@ Report the runs you completed. If you ran out of credits partway through a trial
 
 # Automated first-pass review
 
-Every task PR receives an automated first-pass review before human review
-begins. Once the functional static checks pass (task package structure, task
-metadata, skill frontmatter), a review agent reads the task package and the PR
-description and posts a single comment on the PR with two parts:
+Each eligible open, non-draft PR targeting the default branch and touching
+exactly one task package receives an automated first-pass review on open, push,
+reopen, ready-for-review, or PR description edits; maintainers can also
+dispatch a backfill for an existing PR.
+Once the functional static checks pass (task package structure, task metadata,
+skill frontmatter), trusted workflow code scans the `task.md` prompt
+body and the rubric's `name`, `description`, and `guidance` prose as separate
+documents with GPTZero. For each document, the workflow defines authorship risk
+as `class_probabilities.ai + class_probabilities.mixed` and requires a `human`
+prediction, a `HUMAN_ONLY` classification, and risk strictly below 10%. This is
+a document-classification probability, not the percentage of words written by
+AI. The review agent then reads the latest trusted task-review skill from the
+current base commit, applies selected statically checkable criteria derived
+from it to the task package and PR description, reads the sanitized GPTZero
+result, and posts one comment with two parts:
 
 - **Blockers** — findings with objective, statically checkable criteria:
   package completeness, missing submission evidence, prompt–verifier
   misalignment, trust-boundary violations, answer leakage, resource
-  overclaims. Each cites the file and the standard it violates.
+  overclaims, and GPTZero threshold failures. Each cites the file and the
+  standard it violates. An authorship-gate score or classification failure
+  asks for human rewriting and polishing; it is not an allegation of
+  misconduct.
 - **Notes for the human reviewer** — non-binding scientific observations and
   questions meant to guide the expert review, not to decide it.
+
+Only those extracted prose documents are sent to GPTZero; the API key remains
+an encrypted Actions secret and is never exposed to the review agent. GPTZero
+states that documents submitted through its API are not stored or collected.
+An API or GPTZero response-schema error fails closed for labeling but is
+reported as an automation problem, not a content failure. A deterministic
+input error must be corrected in the named document before rerunning.
 
 Address every blocker and push; the comment updates in place on each push,
 and also when you edit the PR description — the description carries required
 evidence (local runs, provenance, the effort table), so updating it alone is
-enough to be re-reviewed. When the review reports zero blockers, the workflow
-applies the `ready for human review` label (and removes it again if blockers
-reappear). Human science review starts once the comment reports no blockers,
-so clearing it early saves you a review cycle. The
-review is advisory: it never labels, approves, or blocks a PR on its own,
-and maintainers may override any finding.
+enough to be re-reviewed. The workflow applies the `ready for human review`
+label only when the current head passes the functional checks and GPTZero gate,
+the posted review reports zero blockers, and the head has not changed during
+the run. It removes stale readiness on a new head, a draft conversion, an
+opt-out, any failed check, or an unavailable API result. Human science review
+starts once all of those checks pass, so clearing issues early saves you a
+review cycle. A push to `main` also invalidates readiness labels whose evidence
+was produced from an older trusted base commit; push a commit or edit the PR
+title or description to run the latest skill again. The label, not an older
+sticky comment, is the authoritative readiness signal while that rerun is
+pending. The review agent is advisory: it never labels, approves, or blocks a
+PR on its own; trusted workflow code manages the readiness label, and
+maintainers may override any finding.
 
 The review never runs on draft PRs, so open your PR as a draft while you are
 still iterating and mark it ready when you want the first pass. To push to a
 ready PR without triggering a re-review, include `[skip agent-review]` in the
-head commit message; it applies until the next commit without the marker.
+head commit message; it applies until the next commit without the marker and
+removes readiness for that skipped head.
 
 The standards it applies are in
 [.github/agent-review/review-standards.md](.github/agent-review/review-standards.md),

@@ -11,8 +11,9 @@ skill and CONTRIBUTING.md are authoritative (see also the preamble below,
 which says the same about repository rules generally) — except on the areas
 enumerated in §0 and .agents/skills/task-review/POLICY-UPDATES.md (bundled
 skills, PLAN.md-style deliverables, the rubric.json schema, the
-acceptance-evidence matrix), where the skill is a frozen early reference and
-current policy governs.
+acceptance-evidence matrix, automated track-name precedence, and the automated
+AI-authorship gate), where the skill is a frozen early reference and current
+policy governs.
 
 Two consumers:
 - The automated first-pass review (.github/workflows/agent-review.yml)
@@ -33,7 +34,7 @@ Review the **current PR head only**. Historical runs, comments, or results from 
 
 ---
 
-# 0. Current final-package policy (2026-08)
+# 0. Current repository policy (2026-08)
 
 These weekly-sync decisions are current repository policy (issue #142;
 canonical example: `tasks/multiplexing-ion-chain-qnet`, PR #109). Where an
@@ -60,6 +61,13 @@ this section governs; the same list is mirrored for human reviewers in
   is never a finding.
 * **Concise, handwritten `task.md`**, with `network_mode: public` as the
   default posture, per the canonical example.
+* **Automated AI-authorship gate.** The trusted workflow scans the `task.md`
+  prompt body and the rubric's `name`/`description`/`guidance` prose separately.
+  Each must be predicted `human`, classified `HUMAN_ONLY`, and satisfy
+  `class_probabilities.ai + class_probabilities.mixed < 0.10`. This is a
+  document-classification probability, not a percentage of AI-written words.
+  A score failure is a first-pass blocker; an unavailable or indeterminate API
+  result withholds readiness without accusing the contributor.
 
 ---
 
@@ -789,6 +797,22 @@ A good verifier should reward actual scientific correctness, not structural gues
 
 Where repository policy requires the task specification and rubric to be human-authored, inspect them carefully.
 
+For the automated first pass, the workflow also applies the §0 GPTZero gate to
+the prose actually subject to the human-authorship rule: the `task.md` prompt
+body and each rubric criterion's `name`, `description`, and `guidance`. JSON
+punctuation, rubric weights, and task YAML configuration are excluded. Scan the
+two documents independently so one low score cannot dilute a high score in the
+other. A trusted result that reaches the threshold, is not predicted `human`,
+or is not classified `HUMAN_ONLY` is objective blocker evidence; qualitative
+impressions outside that scan remain observations only.
+
+Do not use `average_generated_prob` as the gate. GPTZero exposes a three-way
+document classification, so current policy defines authorship risk as
+`P(ai) + P(mixed)` and requires it to be strictly below 10% together with a
+`human` / `HUMAN_ONLY` result. Never describe that probability as the fraction
+of words written by AI, and never use a detector result to allege misconduct.
+Ask the author to rewrite and polish the relevant prose themselves.
+
 Do not merely check for grammatical correctness.
 
 They should read like they were written by a scientist who understands:
@@ -892,6 +916,7 @@ Examples:
 * current-head acceptance matrix is missing;
 * task-relevant CI fails;
 * agent can obtain high reward without solving the problem;
+* `task.md` or rubric prose fails the trusted §0 AI-authorship gate;
 * final package bundles skills, requires process-file deliverables like
   `PLAN.md`, or uses a pre-0.7.5 rubric schema (§0).
 

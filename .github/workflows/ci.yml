@@ -17,18 +17,26 @@ permissions:
 
 jobs:
   validate-tasks:
-    runs-on: ${{ vars.CI_RUNNER }}
+    # PR-controlled Python is executed below. Keep it off the persistent
+    # self-hosted runner and use an isolated, disposable worker.
+    runs-on: ubuntu-latest
     steps:
       - name: Check out the code under test (for PRs, the merge result — unavailable until merge conflicts are resolved)
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           ref: ${{ github.event_name == 'pull_request_target' && format('refs/pull/{0}/merge', github.event.pull_request.number) || '' }}
           persist-credentials: false
-      - uses: actions/setup-python@v5
+          # The merge ref is intentionally executed only on the disposable
+          # runner above with a read-only, non-persisted token.
+          allow-unsafe-pr-checkout: true
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: "3.12"
-      - name: Install PyYAML (task.md frontmatter parsing)
-        run: python3 -m pip install pyyaml
+      - name: Install hash-pinned PyYAML (task.md frontmatter parsing)
+        run: >-
+          python3 -m pip install --disable-pip-version-check
+          --only-binary=:all: --require-hashes
+          -r .github/agent-review/requirements.txt
       - name: Validate task structure
         run: |
           python3 .github/scripts/validate_repository.py
@@ -39,6 +47,12 @@ jobs:
         run: python3 .github/scripts/test_lint_skill_frontmatter.py
       - name: Test PR description checker
         run: python3 .github/scripts/test_check_pr_description.py
+      - name: Test GPTZero AI-authorship checker
+        run: python3 .github/scripts/test_check_ai_authorship.py
+      - name: Test agent-review comment validator
+        run: python3 .github/scripts/test_validate_agent_review_comment.py
+      - name: Test PR data-tree containment validator
+        run: python3 .github/scripts/test_validate_pr_data_tree.py
       - name: Validate FrontierPhysics documentation
         run: python3 .github/scripts/lint_frontierphysics_docs.py
 
@@ -47,15 +61,18 @@ jobs:
   # Scoped this way the check is safe to promote to a required merge-queue
   # gate (see the main-merge-queue ruleset).
   lint:
-    runs-on: ${{ vars.CI_RUNNER }}
+    # Ruff imports/reads PR-controlled paths; isolate fork input from the
+    # persistent self-hosted host for the same reason as validate-tasks.
+    runs-on: ubuntu-latest
     steps:
       - name: Check out the code under test (for PRs, the merge result — unavailable until merge conflicts are resolved)
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           ref: ${{ github.event_name == 'pull_request_target' && format('refs/pull/{0}/merge', github.event.pull_request.number) || '' }}
           fetch-depth: 0
           persist-credentials: false
-      - uses: astral-sh/setup-uv@v5
+          allow-unsafe-pr-checkout: true
+      - uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86 # v5.4.2
       - name: Ruff (changed Python files)
         run: |
           case "${{ github.event_name }}" in

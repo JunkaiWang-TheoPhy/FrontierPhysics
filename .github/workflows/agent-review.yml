@@ -4,24 +4,28 @@ name: agent-review
 # checkable — blockers with objective criteria plus non-binding observations
 # for the human science reviewer — and posts one sticky PR comment. It never
 # approves or gates. The agent itself never labels either: the workflow
-# deterministically syncs a "ready for human review" label from the reported
-# blocker count. Scope and comment format live in
+# deterministically syncs a "ready for human review" label only when the
+# reported blocker count is zero and the trusted GPTZero authorship gate passes.
+# Scope and comment format live in
 # .github/agent-review/prompt.md; the standards it applies live in
 # .github/agent-review/review-standards.md.
 #
 # Runs on pull_request_target so fork PRs (the normal contribution route per
 # CONTRIBUTING.md) run with repository secrets available. That event carries
 # an elevated token, so nothing from the PR head is ever executed: scripts and
-# prompts come from the trusted base checkout, the PR tree is data only, and
-# the review agent gets read-only tools (no Bash, no Write, no network tools).
+# prompts and the GPTZero client come from the trusted base checkout, the PR
+# tree is data only, and the review agent gets no Bash or network tools. The
+# GPTZERO_API_KEY is scoped only to the trusted scanner step and is never put in
+# the review agent's environment or prompt.
 #
 # The review runs only after the functional static checks pass (task package
 # structure, task metadata, skill frontmatter). Documentation linters are
 # deliberately not gates (see issue #81) — their output is captured and handed
 # to the reviewer as non-blocking context instead.
 
-# Triggering: every push to a non-draft task PR re-runs the review (that is
-# the loop that lets authors clear blockers), and `edited` re-runs it when the
+# Triggering: every push to a non-draft PR re-runs the trusted scope check and,
+# when exactly one valid task package is touched, the review. That is the loop
+# that lets authors clear blockers; `edited` also re-runs it when the
 # PR description changes, since the description carries required submission
 # evidence (local runs, provenance, effort table). Frequency controls: draft
 # PRs are never reviewed (iterate there freely), superseded runs are cancelled
@@ -30,39 +34,386 @@ name: agent-review
 
 on:
   pull_request_target:
-    types: [opened, synchronize, reopened, ready_for_review, edited]
-    paths: ["tasks/**"]
+    # Deliberately unfiltered: GitHub evaluates path filters from at most 300
+    # changed files, which could otherwise leave an old readiness label in
+    # place on a padded update. Trusted code below computes the complete scope.
+    types: [opened, synchronize, reopened, ready_for_review, converted_to_draft, edited, closed]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: Open pull request number to review at its current head
+        required: true
+        type: number
 
 concurrency:
-  group: agent-review-${{ github.event.pull_request.number }}
+  group: agent-review-${{ github.event.pull_request.number || inputs.pr_number || github.run_id }}
   cancel-in-progress: true
 
 permissions:
   contents: read
-  pull-requests: write
-  issues: write
 
 jobs:
-  review:
-    if: ${{ !github.event.pull_request.draft }}
+  resolve-pr:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      pr_number: ${{ steps.pr.outputs.pr_number }}
+      head_sha: ${{ steps.pr.outputs.head_sha }}
+      base_sha: ${{ steps.pr.outputs.base_sha }}
+      trusted_base_sha: ${{ steps.pr.outputs.trusted_base_sha }}
+      head_repo: ${{ steps.pr.outputs.head_repo }}
+      draft: ${{ steps.pr.outputs.draft }}
+      state: ${{ steps.pr.outputs.state }}
+      context_sha256: ${{ steps.pr.outputs.context_sha256 }}
+    steps:
+      - name: Resolve immutable pull-request context
+        id: pr
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT_PR_NUMBER: ${{ github.event.pull_request.number }}
+          DISPATCH_PR_NUMBER: ${{ inputs.pr_number }}
+        run: |
+          set -euo pipefail
+          if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then
+            pr_number="$DISPATCH_PR_NUMBER"
+          else
+            pr_number="$EVENT_PR_NUMBER"
+          fi
+          if ! [[ "$pr_number" =~ ^[1-9][0-9]*$ ]]; then
+            echo "::error::A positive pull-request number is required"
+            exit 1
+          fi
+
+          live_pr=$(gh api "repos/${GITHUB_REPOSITORY}/pulls/${pr_number}")
+          head_sha=$(jq -er '.head.sha' <<< "$live_pr")
+          base_sha=$(jq -er '.base.sha' <<< "$live_pr")
+          base_ref=$(jq -er '.base.ref' <<< "$live_pr")
+          head_repo=$(jq -r '.head.repo.full_name // ""' <<< "$live_pr")
+          draft=$(jq -er '.draft | if . then "true" else "false" end' <<< "$live_pr")
+          state=$(jq -er '.state' <<< "$live_pr")
+          trusted_base_sha="$GITHUB_SHA"
+          default_branch=$(gh api "repos/${GITHUB_REPOSITORY}" --jq '.default_branch')
+          context_sha256=$(jq -S -c '{title: (.title // ""), body: (.body // "")}' \
+            <<< "$live_pr" | sha256sum | cut -d' ' -f1)
+
+          if [ "$state" = "open" ] && [ "$draft" != "true" ] \
+             && [ -z "$head_repo" ]; then
+            echo "::error::The active pull request has no readable head repository"
+            exit 1
+          fi
+
+          if [ "$base_ref" != "$default_branch" ]; then
+            echo "::error::Agent review is limited to pull requests targeting the default branch"
+            exit 1
+          fi
+
+          # A manually dispatched run must use the workflow from the exact
+          # current default-branch commit. PR metadata can retain an older
+          # base SHA until the PR is refreshed, so bind policy to the live base
+          # ref while separately preserving that PR-base SHA for stale checks.
+          if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then
+            current_base_ref_sha=$(gh api \
+              "repos/${GITHUB_REPOSITORY}/commits/${base_ref}" --jq '.sha')
+            has_task_label=$(jq -r \
+              '[.labels[]?.name] | index("task") != null' <<< "$live_pr")
+            if [ "$GITHUB_REF_NAME" != "$default_branch" ] \
+               || [ "$GITHUB_SHA" != "$current_base_ref_sha" ]; then
+              echo "::error::Manual reviews must run from the PR's current default-branch policy commit"
+              exit 1
+            fi
+            if [ "$has_task_label" != "true" ]; then
+              echo "::error::Manual reviews are limited to pull requests labeled task"
+              exit 1
+            fi
+          fi
+
+          {
+            echo "pr_number=$pr_number"
+            echo "head_sha=$head_sha"
+            echo "base_sha=$base_sha"
+            echo "trusted_base_sha=$trusted_base_sha"
+            echo "head_repo=$head_repo"
+            echo "draft=$draft"
+            echo "state=$state"
+            echo "context_sha256=$context_sha256"
+          } >> "$GITHUB_OUTPUT"
+
+  clear-unresolved-readiness:
+    needs: resolve-pr
+    if: ${{ !cancelled() && always() && needs.resolve-pr.result == 'failure' }}
     runs-on: ${{ vars.CI_RUNNER }}
+    permissions:
+      contents: read
+      pull-requests: read
+      issues: write
+    steps:
+      - name: Fail closed when pull-request context cannot be resolved
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number || inputs.pr_number }}
+        run: |
+          set -euo pipefail
+          if ! [[ "$PR_NUMBER" =~ ^[1-9][0-9]*$ ]]; then
+            echo "No valid pull-request number was available for fail-closed cleanup"
+            exit 0
+          fi
+          LABEL='ready for human review'
+          encoded_label=$(jq -rn --arg value "$LABEL" '$value | @uri')
+          for attempt in 1 2 3; do
+            if labels=$(gh api \
+              "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/labels" \
+              --paginate --jq '.[].name'); then
+              break
+            fi
+            if [ "$attempt" -eq 3 ]; then
+              echo "::error::Could not read labels for fail-closed cleanup"
+              exit 1
+            fi
+            sleep "$attempt"
+          done
+          if grep -Fxq "$LABEL" <<< "$labels"; then
+            for attempt in 1 2 3; do
+              if gh api -X DELETE \
+                "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/labels/${encoded_label}" \
+                > /dev/null; then
+                break
+              fi
+              if [ "$attempt" -eq 3 ]; then
+                echo "::error::Could not remove readiness during fail-closed cleanup"
+                exit 1
+              fi
+              sleep "$attempt"
+            done
+            echo "Removed readiness because trusted PR context could not be resolved"
+          else
+            echo "Ready label already absent"
+          fi
+
+  clear-inactive-readiness:
+    needs: resolve-pr
+    if: ${{ needs.resolve-pr.outputs.state != 'open' || needs.resolve-pr.outputs.draft == 'true' }}
+    runs-on: ${{ vars.CI_RUNNER }}
+    permissions:
+      contents: read
+      pull-requests: read
+      issues: write
+    steps:
+      - name: Remove ready label from draft or closed PR
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ needs.resolve-pr.outputs.pr_number }}
+        run: |
+          set -euo pipefail
+          LABEL='ready for human review'
+          current_pr=$(gh api "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}")
+          current_draft=$(jq -r '.draft' <<< "$current_pr")
+          current_state=$(jq -r '.state' <<< "$current_pr")
+          # Inactivity dominates generation ownership: no head can correctly
+          # carry a ready label while the PR is closed or draft.
+          if [ "$current_state" = "open" ] && [ "$current_draft" != "true" ]; then
+            echo "Inactive event is stale; the PR is currently open and ready for review"
+            exit 0
+          fi
+          labels=$(gh api "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/labels" --paginate --jq '.[].name')
+          if grep -Fxq "$LABEL" <<< "$labels"; then
+            encoded_label=$(jq -rn --arg value "$LABEL" '$value | @uri')
+            gh api -X DELETE \
+              "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/labels/${encoded_label}" \
+              > /dev/null
+            echo "Label removed because the PR is draft or closed"
+          else
+            echo "Ready label already absent"
+          fi
+
+  clear-current-readiness:
+    needs: resolve-pr
+    if: ${{ needs.resolve-pr.outputs.state == 'open' && needs.resolve-pr.outputs.draft != 'true' }}
+    runs-on: ${{ vars.CI_RUNNER }}
+    permissions:
+      contents: read
+      pull-requests: read
+      issues: write
+    steps:
+      - name: Clear stale readiness while this head is reviewed
+        # A label describes the current head, so remove the prior head's label
+        # before any opt-out, API error, cancellation, or agent failure can
+        # leave it looking current. A fully passing run restores it below.
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ needs.resolve-pr.outputs.pr_number }}
+          EXPECTED_HEAD_SHA: ${{ needs.resolve-pr.outputs.head_sha }}
+        run: |
+          set -euo pipefail
+          LABEL='ready for human review'
+          current_pr=$(gh api "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}")
+          current_head=$(jq -r '.head.sha' <<< "$current_pr")
+          current_draft=$(jq -r '.draft' <<< "$current_pr")
+          current_state=$(jq -r '.state' <<< "$current_pr")
+          if [ "$current_state" = "open" ] \
+             && [ "$current_draft" != "true" ] \
+             && [ "$current_head" != "$EXPECTED_HEAD_SHA" ]; then
+            echo "Review event is stale; leaving current readiness state untouched"
+            exit 0
+          fi
+          labels=$(gh api "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/labels" --paginate --jq '.[].name')
+          if grep -Fxq "$LABEL" <<< "$labels"; then
+            encoded_label=$(jq -rn --arg value "$LABEL" '$value | @uri')
+            gh api -X DELETE \
+              "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/labels/${encoded_label}" \
+              > /dev/null
+            if [ "$current_state" != "open" ] || [ "$current_draft" = "true" ]; then
+              echo "Cleared readiness because the PR became inactive"
+            else
+              echo "Cleared prior readiness while head ${{ needs.resolve-pr.outputs.head_sha }} is reviewed"
+            fi
+          else
+            echo "Ready label already absent"
+          fi
+
+  review:
+    needs: [resolve-pr, clear-current-readiness]
+    if: ${{ !cancelled() && needs.resolve-pr.outputs.state == 'open' && needs.resolve-pr.outputs.draft != 'true' && needs.clear-current-readiness.result == 'success' }}
+    # Untrusted task prose is exposed to an agent with file-read tools. Never
+    # run that agent on the persistent self-hosted runner, where workstation
+    # files and credentials may be present outside the checkout.
+    runs-on: ubuntu-latest
     timeout-minutes: 30
+    env:
+      # The trusted validator permits exactly these mentions, and only in a
+      # validated zero-blocker/pass comment.
+      READY_MENTIONS: "@yuema137 @bingran-you @wenjun-ke"
+    permissions:
+      contents: read
+      pull-requests: read
+      issues: read
+    outputs:
+      opted_out: ${{ steps.optout.outputs.skip }}
+      gate_ok: ${{ steps.gate.outputs.ok }}
+      gptzero_status: ${{ steps.gptzero.outputs.status }}
+      gptzero_head_sha: ${{ steps.gptzero.outputs.head_sha }}
+      gptzero_report_sha256: ${{ steps.gptzero.outputs.report_sha256 }}
+      trusted_base_sha: ${{ steps.trusted_base.outputs.sha }}
+      review_context_sha256: ${{ steps.pr_context.outputs.review_context_sha256 }}
+      comment_ready: ${{ steps.comment.outputs.ready }}
+      review_state: ${{ steps.comment.outputs.review_state }}
+      comment_sha256: ${{ steps.comment.outputs.comment_sha256 }}
     steps:
       - name: Check out base branch (trusted scripts and prompts)
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           persist-credentials: false
 
+      - name: Bind trusted review logic to the event base
+        id: trusted_base
+        env:
+          EXPECTED_BASE_SHA: ${{ needs.resolve-pr.outputs.trusted_base_sha }}
+        run: |
+          set -euo pipefail
+          actual=$(git rev-parse HEAD)
+          if [ "$actual" != "$EXPECTED_BASE_SHA" ]; then
+            echo "::error::Trusted checkout does not match the pull-request base SHA"
+            exit 1
+          fi
+          echo "sha=$actual" >> "$GITHUB_OUTPUT"
+
+      - name: Collect and bind live PR context
+        id: pr_context
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EXPECTED_HEAD_SHA: ${{ needs.resolve-pr.outputs.head_sha }}
+          EXPECTED_BASE_SHA: ${{ needs.resolve-pr.outputs.base_sha }}
+          EXPECTED_CONTEXT_SHA256: ${{ needs.resolve-pr.outputs.context_sha256 }}
+        run: |
+          set -euo pipefail
+          pull_url="repos/${GITHUB_REPOSITORY}/pulls/${{ needs.resolve-pr.outputs.pr_number }}"
+          live_pr=$(gh api "$pull_url")
+          if [ "$(jq -r '.head.sha' <<< "$live_pr")" != "$EXPECTED_HEAD_SHA" ] \
+             || [ "$(jq -r '.base.sha' <<< "$live_pr")" != "$EXPECTED_BASE_SHA" ] \
+             || [ "$(jq -r '.state' <<< "$live_pr")" != "open" ] \
+             || [ "$(jq -r '.draft' <<< "$live_pr")" = "true" ]; then
+            echo "::error::Pull request changed or became inactive before context collection"
+            exit 1
+          fi
+          live_context_sha256=$(jq -S -c '{title: (.title // ""), body: (.body // "")}' \
+            <<< "$live_pr" | sha256sum | cut -d' ' -f1)
+          if [ "$live_context_sha256" != "$EXPECTED_CONTEXT_SHA256" ]; then
+            echo "::error::Pull request title or description changed before context collection"
+            exit 1
+          fi
+
+          declared_count=$(jq -er '.changed_files | numbers' <<< "$live_pr")
+          if [ "$declared_count" -gt 3000 ]; then
+            echo "::error::Pull request exceeds GitHub's 3,000-file review API limit"
+            exit 1
+          fi
+          gh api "$pull_url/files" --paginate --slurp > changed_file_pages.json
+          collected_count=$(jq -er '[.[][]] | length' changed_file_pages.json)
+          if [ "$collected_count" -ne "$declared_count" ]; then
+            echo "::error::Changed-file manifest is incomplete"
+            exit 1
+          fi
+          # Include both sides of renames. This prevents a cross-task rename
+          # from masquerading as a one-task change while preserving the API's
+          # response-object count check above.
+          jq '[.[][] | .filename, (.previous_filename? // empty)] | unique' \
+            changed_file_pages.json > changed_files.json
+          jq -e 'all(.[]; type == "string" and (contains("\n") | not) and (contains("\r") | not) and (contains("\u0000") | not))' \
+            changed_files.json > /dev/null
+
+          # Reuse the trusted checker's scope parser before checking out the
+          # PR or starting any paid service. It validates paths and enforces
+          # exactly one task ID, including both sides of a rename.
+          set +e
+          python3 - "$GITHUB_OUTPUT" <<'PY'
+          import sys
+          from pathlib import Path
+
+          sys.path.insert(0, ".github/scripts")
+          from check_ai_authorship import CheckError, load_changed_files_json, touched_task_ids
+
+          try:
+              touched_task_ids(load_changed_files_json(Path("changed_files.json")))
+          except (CheckError, OSError) as exc:
+              with open(sys.argv[1], "a", encoding="utf-8") as output:
+                  output.write("review_scope_valid=false\n")
+              print(f"::notice::Task review scope rejected: {exc}")
+              raise SystemExit(1)
+          with open(sys.argv[1], "a", encoding="utf-8") as output:
+              output.write("review_scope_valid=true\n")
+          PY
+          scope_rc=$?
+          set -e
+          if [ "$scope_rc" -ne 0 ]; then
+            echo "The paid review is skipped until the PR touches exactly one valid task package"
+          fi
+          jq '{number, title, author: .user.login, head_sha: .head.sha, body: (.body // "")}' \
+            <<< "$live_pr" > pr_meta.json
+          jq -S -c '{title: (.title // ""), body: (.body // "")}' \
+            <<< "$live_pr" > review_context.json
+          review_context_sha256=$(sha256sum review_context.json | cut -d' ' -f1)
+          echo "review_context_sha256=$review_context_sha256" >> "$GITHUB_OUTPUT"
+
       - name: Check out PR head (untrusted, data only)
-        uses: actions/checkout@v4
+        if: steps.pr_context.outputs.review_scope_valid == 'true'
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
-          repository: ${{ github.event.pull_request.head.repo.full_name }}
-          ref: ${{ github.event.pull_request.head.sha }}
+          repository: ${{ needs.resolve-pr.outputs.head_repo }}
+          ref: ${{ needs.resolve-pr.outputs.head_sha }}
           path: pr-head
           persist-credentials: false
+          # Required by checkout v4.4+ for pull_request_target. This checkout
+          # remains data-only: no PR-controlled file is executed.
+          allow-unsafe-pr-checkout: true
+
+      - name: Validate PR data symlink containment
+        if: steps.pr_context.outputs.review_scope_valid == 'true'
+        run: python3 .github/scripts/validate_pr_data_tree.py pr-head
 
       - name: Check for review opt-out
         id: optout
+        if: steps.pr_context.outputs.review_scope_valid == 'true'
         run: |
           msg=$(git -C pr-head log -1 --format=%B)
           if grep -qF '[skip agent-review]' <<< "$msg"; then
@@ -73,26 +424,38 @@ jobs:
           fi
 
       - name: Replace PR-head validators with trusted base copies
-        if: steps.optout.outputs.skip != 'true'
+        if: steps.pr_context.outputs.review_scope_valid == 'true' && steps.optout.outputs.skip != 'true'
         # The linters locate the repo root from their own file path, so the
         # base-branch scripts are dropped into the head checkout to make them
         # validate the PR tree while running only trusted code. The PR's own
         # script versions are kept aside as data (never executed) so the
         # reviewer can check registry consistency in them.
         run: |
-          mv pr-head/.github/scripts pr-head-scripts-as-submitted
+          set -euo pipefail
+          submitted=pr-head/.github/scripts/validate_repository.py
+          if [ -L pr-head/.github ] || [ -L pr-head/.github/scripts ] \
+             || [ -L "$submitted" ] || [ ! -f "$submitted" ]; then
+            echo "::error::Submitted validator path must contain only regular directories and a regular file"
+            exit 1
+          fi
+          mkdir pr-head-scripts-as-submitted
+          cp --no-dereference "$submitted" pr-head-scripts-as-submitted/validate_repository.py
+          rm -rf -- pr-head/.github/scripts
           cp -R .github/scripts pr-head/.github/scripts
 
-      - uses: actions/setup-python@v5
-        if: steps.optout.outputs.skip != 'true'
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        if: steps.pr_context.outputs.review_scope_valid == 'true' && steps.optout.outputs.skip != 'true'
         with:
           python-version: "3.12"
-      - name: Install PyYAML (task.md frontmatter parsing)
-        if: steps.optout.outputs.skip != 'true'
-        run: python3 -m pip install pyyaml
+      - name: Install hash-pinned PyYAML (task.md frontmatter parsing)
+        if: steps.pr_context.outputs.review_scope_valid == 'true' && steps.optout.outputs.skip != 'true'
+        run: >-
+          python3 -m pip install --disable-pip-version-check
+          --only-binary=:all: --require-hashes
+          -r .github/agent-review/requirements.txt
 
       - name: Functional static checks (gate for the LLM review)
-        if: steps.optout.outputs.skip != 'true'
+        if: steps.pr_context.outputs.review_scope_valid == 'true' && steps.optout.outputs.skip != 'true'
         id: gate
         # validate_repository.py is deliberately not a gate: its EXPECTED_TASKS
         # allowlist is hardcoded, so the trusted base copy always rejects a PR
@@ -124,27 +487,54 @@ jobs:
           } > advisory_checks.txt
           cat advisory_checks.txt
 
-      - name: Collect PR context
+      - name: GPTZero AI-authorship gate
+        id: gptzero
         if: steps.gate.outputs.ok == 'true'
         env:
-          GH_TOKEN: ${{ github.token }}
+          # Configure this once as a repository or organization Actions secret.
+          # Never read a workstation .env file from CI and never pass this value
+          # to the review agent.
+          GPTZERO_API_KEY: ${{ secrets.GPTZERO_API_KEY }}
+          AI_AUTHORSHIP_THRESHOLD: "0.10"
         run: |
-          gh api "repos/${GITHUB_REPOSITORY}/pulls/${{ github.event.pull_request.number }}/files" \
-            --paginate --jq '.[].filename' > changed_files.txt
-          jq '{number: .pull_request.number,
-               title: .pull_request.title,
-               author: .pull_request.user.login,
-               head_sha: .pull_request.head.sha,
-               body: .pull_request.body}' \
-            "$GITHUB_EVENT_PATH" > pr_meta.json
+          set +e
+          python3 .github/scripts/check_ai_authorship.py \
+            --repo-root pr-head \
+            --changed-files-json changed_files.json \
+            --output ai_detection.json \
+            --threshold "$AI_AUTHORSHIP_THRESHOLD"
+          rc=$?
+          set -e
+
+          case "$rc" in
+            0) status=pass ;;
+            1) status=fail ;;
+            *) status=error ;;
+          esac
+          if [ -s ai_detection.json ]; then
+            report_sha256=$(sha256sum ai_detection.json | cut -d' ' -f1)
+          else
+            status=error
+            report_sha256=""
+            echo "::error::Trusted GPTZero checker did not produce its sanitized report"
+          fi
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+          echo "head_sha=${{ needs.resolve-pr.outputs.head_sha }}" >> "$GITHUB_OUTPUT"
+          echo "report_sha256=$report_sha256" >> "$GITHUB_OUTPUT"
+          echo "GPTZero gate status: $status"
+
+      - name: Verify trusted task-review skill alias
+        if: steps.gate.outputs.ok == 'true'
+        run: |
+          set -euo pipefail
+          test -f .claude/skills/task-review/SKILL.md
+          test -f .agents/skills/task-review/SKILL.md
+          test "$(realpath .claude/skills/task-review)" = "$(realpath .agents/skills/task-review)"
 
       - name: LLM first-pass review
+        id: review_agent
         if: steps.gate.outputs.ok == 'true'
-        env:
-          # Maintainers the review mentions when a PR reaches the no-blocker
-          # state (ready for human science review). Space-separated @handles.
-          READY_MENTIONS: "@yuema137 @bingran-you @wenjun-ke"
-        uses: anthropics/claude-code-action@v1
+        uses: anthropics/claude-code-action@16b3b310c3d7b5279df73130324d5205aeea8eac # v1.0.205
         with:
           # Either credential works; set exactly one as a repository secret.
           # ANTHROPIC_API_KEY: a Console API key (sk-ant-api...), billed to the
@@ -155,43 +545,164 @@ jobs:
           # Default workflow token; remove this input if the Claude GitHub App
           # gets installed on the repository.
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          # Temporary while stabilizing the rollout: surface Claude's output in
-          # the job log so failures are diagnosable. Remove once stable.
-          show_full_output: true
+          # Task contributions normally come from forks. This bypass is safe
+          # only because this job's GitHub token is read-only, PR code is never
+          # executed, tools exclude Bash/network, and publishing happens in a
+          # separate write-scoped job that validates the output.
+          allowed_non_write_users: "*"
           prompt: |
-            Use the task-review skill from the trusted base checkout at
-            .agents/skills/task-review/SKILL.md for its routing and static
-            policy stages. This is the bounded GitHub first-pass described in
-            .github/agent-review/prompt.md, not a complete benchmark verdict.
+            Invoke the registered task-review skill, whose source is the latest
+            trusted base checkout at .agents/skills/task-review/SKILL.md. Use
+            its routing guidance and the selected statically checkable criteria
+            defined by .github/agent-review/prompt.md. This is a bounded GitHub
+            first pass, not the skill's complete policy matrix, benchmark,
+            trajectory audit, report, bundle, or verdict.
             Follow the review instructions in .github/agent-review/prompt.md
-            for pull request #${{ github.event.pull_request.number }}.
-            Maintainers to mention if and only if there are no blockers:
+            for pull request #${{ needs.resolve-pr.outputs.pr_number }}.
+            The trusted workflow-side GPTZero status for this exact head is
+            `${{ steps.gptzero.outputs.status }}`. Read the sanitized details
+            from ai_detection.json and follow the pass/fail/error rules in the
+            review prompt. Never infer readiness from that file alone.
+            Maintainers to mention if and only if there are no blockers and
+            the trusted GPTZero status is `pass`:
             ${{ env.READY_MENTIONS }}
-          # The comment is not posted by the agent: it writes review-comment.md
-          # and the next step publishes it, so posting works on every trigger
-          # type (the action's own comment plumbing does not cover `edited`).
+            Return only the requested review in the structured `review_comment`
+            field. Do not create or edit files and do not post to GitHub.
+          # Keep pr-head as an ordinary nested data directory. Passing it via
+          # --add-dir would make Claude Code discover PR-controlled skills.
           claude_args: |
             --model claude-opus-5
             --max-turns 100
-            --allowedTools "Read,Grep,Glob,Write,Skill(task-review)"
-            --disallowedTools "Bash,Edit,NotebookEdit,WebFetch,WebSearch,Task"
+            --permission-mode dontAsk
+            --json-schema '{"type":"object","properties":{"review_comment":{"type":"string","maxLength":16384}},"required":["review_comment"],"additionalProperties":false}'
+            --tools "Read,Grep,Glob,Skill"
+            --allowedTools "Read(/pr-head/**),Read(/pr-head-scripts-as-submitted/**),Read(/.agents/skills/task-review/**),Read(/.github/agent-review/**),Read(/CONTRIBUTING.md),Read(/taxonomy.md),Read(/changed_files.json),Read(/pr_meta.json),Read(/advisory_checks.txt),Read(/ai_detection.json),Grep,Glob,Skill(task-review)"
+            --disallowedTools "mcp__*,Read(//proc/**),Read(//etc/**),Read(//**/.env),Read(//**/.env.*),Read(~/.ssh/**),Read(~/.aws/**),Read(~/.claude/**),Read(/.git/**),Read(/pr-head/.git/**),Agent,AskUserQuestion,Bash,Edit,Write,NotebookEdit,WebFetch,WebSearch,Task"
+
+      - name: Validate structured review output
+        id: comment
+        if: ${{ !cancelled() && always() }}
+        env:
+          STRUCTURED_OUTPUT: ${{ steps.review_agent.outputs.structured_output }}
+          EXPECTED_AI_STATUS: ${{ steps.gptzero.outputs.status }}
+          EXPECTED_AI_REPORT_SHA256: ${{ steps.gptzero.outputs.report_sha256 }}
+          EXPECTED_HEAD_SHA: ${{ needs.resolve-pr.outputs.head_sha }}
+        run: |
+          set -euo pipefail
+          publishable=false
+          review_state=invalid
+          comment_sha256=""
+
+          if [ "${{ steps.gate.outputs.ok }}" = "true" ] \
+             && [ "${{ steps.review_agent.outcome }}" = "success" ] \
+             && [ -n "$STRUCTURED_OUTPUT" ] \
+             && printf '%s' "$STRUCTURED_OUTPUT" \
+                  | jq -er '.review_comment | select(type == "string")' > agent-review-comment.md \
+             && python3 .github/scripts/validate_agent_review_comment.py \
+                  --comment agent-review-comment.md \
+                  --ai-report ai_detection.json \
+                  --expected-ai-report-sha256 "$EXPECTED_AI_REPORT_SHA256" \
+                  --expected-ai-status "$EXPECTED_AI_STATUS" \
+                  --head-sha "$EXPECTED_HEAD_SHA" \
+                  --ready-mentions "$READY_MENTIONS" \
+                  --validated-comment validated-review-comment.md \
+                  --metadata-output review-comment-validation.json; then
+            publishable=true
+            review_state=$(jq -er '.review_state' review-comment-validation.json)
+            comment_sha256=$(jq -er '.comment_sha256' review-comment-validation.json)
+          elif [ "${{ steps.gate.outputs.ok }}" = "true" ]; then
+            echo "::error::Agent review output was missing or failed trusted validation"
+          fi
+
+          echo "ready=$publishable" >> "$GITHUB_OUTPUT"
+          echo "review_state=$review_state" >> "$GITHUB_OUTPUT"
+          echo "comment_sha256=$comment_sha256" >> "$GITHUB_OUTPUT"
+
+      - name: Transfer review comment to the write-scoped publisher
+        if: steps.comment.outputs.ready == 'true'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: agent-review-comment-${{ github.run_id }}-${{ github.run_attempt }}
+          path: validated-review-comment.md
+          if-no-files-found: error
+          retention-days: 1
+
+  publish:
+    needs: [resolve-pr, clear-current-readiness, review]
+    if: ${{ !cancelled() && needs.resolve-pr.outputs.state == 'open' && needs.resolve-pr.outputs.draft != 'true' }}
+    runs-on: ${{ vars.CI_RUNNER }}
+    permissions:
+      contents: read
+      pull-requests: read
+      issues: write
+    steps:
+      - name: Download validated review comment
+        if: needs.review.result == 'success' && needs.review.outputs.comment_ready == 'true'
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: agent-review-comment-${{ github.run_id }}-${{ github.run_attempt }}
 
       - name: Post review comment (sticky by marker)
         id: post
-        if: steps.gate.outputs.ok == 'true'
+        if: needs.review.result == 'success' && needs.review.outputs.comment_ready == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_NUMBER: ${{ needs.resolve-pr.outputs.pr_number }}
+          EXPECTED_HEAD_SHA: ${{ needs.resolve-pr.outputs.head_sha }}
+          EXPECTED_PR_BASE_SHA: ${{ needs.resolve-pr.outputs.base_sha }}
+          TRUSTED_BASE_SHA: ${{ needs.review.outputs.trusted_base_sha }}
+          EXPECTED_CONTEXT_SHA256: ${{ needs.review.outputs.review_context_sha256 }}
+          EXPECTED_COMMENT_SHA256: ${{ needs.review.outputs.comment_sha256 }}
+          REVIEW_STATE: ${{ needs.review.outputs.review_state }}
         run: |
-          if [ ! -s review-comment.md ]; then
-            echo "::error::The review agent did not produce review-comment.md"
+          set -euo pipefail
+          echo "published=false" >> "$GITHUB_OUTPUT"
+
+          current_pr=$(gh api "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}")
+          current_head=$(jq -r '.head.sha' <<< "$current_pr")
+          current_base=$(jq -r '.base.sha' <<< "$current_pr")
+          current_base_ref=$(jq -r '.base.ref' <<< "$current_pr")
+          current_draft=$(jq -r '.draft' <<< "$current_pr")
+          current_state=$(jq -r '.state' <<< "$current_pr")
+          default_branch=$(gh api "repos/${GITHUB_REPOSITORY}" --jq '.default_branch')
+          encoded_branch=$(jq -rn --arg value "$default_branch" '$value | @uri')
+          current_policy_sha=$(gh api \
+            "repos/${GITHUB_REPOSITORY}/commits/${encoded_branch}" --jq '.sha')
+          current_context_sha256=$(jq -S -c '{title: (.title // ""), body: (.body // "")}' \
+            <<< "$current_pr" | sha256sum | cut -d' ' -f1)
+          if [ "$current_head" != "$EXPECTED_HEAD_SHA" ] \
+             || [ "$current_base" != "$EXPECTED_PR_BASE_SHA" ] \
+             || [ "$current_base_ref" != "$default_branch" ] \
+             || [ "$current_policy_sha" != "$TRUSTED_BASE_SHA" ] \
+             || [ "$current_context_sha256" != "$EXPECTED_CONTEXT_SHA256" ] \
+             || [ "$current_state" != "open" ] \
+             || [ "$current_draft" = "true" ]; then
+            echo "Review result is stale or the PR is inactive; skipping comment publication"
+            exit 0
+          fi
+          if [ ! -s validated-review-comment.md ]; then
+            echo "::error::The trusted validator did not produce a review comment"
             exit 1
           fi
-          marker='<!-- frontierphysics-agent-review -->'
+          actual_sha256=$(sha256sum validated-review-comment.md | cut -d' ' -f1)
+          if [ "$actual_sha256" != "$EXPECTED_COMMENT_SHA256" ]; then
+            echo "::error::Transferred review comment does not match its trusted hash"
+            exit 1
+          fi
+          case "$REVIEW_STATE" in
+            ready|blocked|incomplete) ;;
+            *) echo "::error::Trusted review state is invalid"; exit 1 ;;
+          esac
+
+          marker_prefix='<!-- frontierphysics-agent-review '
+          marker="<!-- frontierphysics-agent-review base=${TRUSTED_BASE_SHA} head=${EXPECTED_HEAD_SHA} context=${EXPECTED_CONTEXT_SHA256} state=${REVIEW_STATE} -->"
           printf '%s\n\n' "$marker" > comment-body.md
-          cat review-comment.md >> comment-body.md
-          cid=$(gh api "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments" --paginate \
-            --jq "[.[] | select(.body | startswith(\"$marker\"))][0].id // empty")
+          cat validated-review-comment.md >> comment-body.md
+          gh api "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments" \
+            --paginate --slurp > existing_comments.json
+          cid=$(jq -r --arg prefix "$marker_prefix" \
+            '([.[][] | select(.user.login == "github-actions[bot]" and (.body | startswith($prefix)))] | last | .id) // empty' \
+            existing_comments.json)
           if [ -n "$cid" ]; then
             gh api -X PATCH "repos/${GITHUB_REPOSITORY}/issues/comments/$cid" -F "body=@comment-body.md" > /dev/null
             echo "Updated sticky comment $cid"
@@ -199,35 +710,122 @@ jobs:
             gh api "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments" -F "body=@comment-body.md" > /dev/null
             echo "Created sticky comment"
           fi
+          echo "published=true" >> "$GITHUB_OUTPUT"
 
       - name: Sync ready-for-human-review label
-        # Deterministic, workflow-side labeling — the review agent itself never
-        # labels. The label is applied when the posted review reports zero
-        # blockers, and removed when blockers reappear or the functional gate
-        # fails, so it cannot go stale. When the review itself failed to run,
-        # the label is left untouched (state unknown).
-        if: always() && steps.optout.outputs.skip != 'true' && (steps.gate.outputs.ok == 'false' || steps.post.outcome == 'success')
+        # Deterministic, fail-closed workflow-side labeling — the review agent
+        # itself never labels. Only immutable outputs from the trusted validator
+        # can assert the ready state; the transferred comment is never reparsed.
+        if: ${{ !cancelled() && always() }}
         env:
           GH_TOKEN: ${{ github.token }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_NUMBER: ${{ needs.resolve-pr.outputs.pr_number }}
+          EXPECTED_HEAD_SHA: ${{ needs.resolve-pr.outputs.head_sha }}
+          EXPECTED_PR_BASE_SHA: ${{ needs.resolve-pr.outputs.base_sha }}
+          TRUSTED_BASE_SHA: ${{ needs.resolve-pr.outputs.trusted_base_sha }}
+          EVENT_CONTEXT_SHA256: ${{ needs.resolve-pr.outputs.context_sha256 }}
+          REVIEW_BASE_SHA: ${{ needs.review.outputs.trusted_base_sha }}
+          REVIEW_CONTEXT_SHA256: ${{ needs.review.outputs.review_context_sha256 }}
         run: |
+          set -euo pipefail
           LABEL='ready for human review'
           ready=false
-          if [ "${{ steps.gate.outputs.ok }}" = "true" ] \
-             && grep -qE '^\*\*Blockers: 0\*\*' review-comment.md; then
+          current_pr=$(gh api "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}")
+          current_head=$(jq -r '.head.sha' <<< "$current_pr")
+          current_base=$(jq -r '.base.sha' <<< "$current_pr")
+          current_base_ref=$(jq -r '.base.ref' <<< "$current_pr")
+          current_draft=$(jq -r '.draft' <<< "$current_pr")
+          current_state=$(jq -r '.state' <<< "$current_pr")
+          default_branch=$(gh api "repos/${GITHUB_REPOSITORY}" --jq '.default_branch')
+          encoded_branch=$(jq -rn --arg value "$default_branch" '$value | @uri')
+          current_policy_sha=$(gh api \
+            "repos/${GITHUB_REPOSITORY}/commits/${encoded_branch}" --jq '.sha')
+          current_context_sha256=$(jq -S -c '{title: (.title // ""), body: (.body // "")}' \
+            <<< "$current_pr" | sha256sum | cut -d' ' -f1)
+          event_context_sha256="$EVENT_CONTEXT_SHA256"
+
+          # Inactivity is generation-independent: no closed or draft PR may
+          # retain readiness, even when this run belongs to an older head.
+          if [ "$current_state" != "open" ]; then
+            echo "PR is closed; readiness will be removed"
+          elif [ "$current_draft" = "true" ]; then
+            echo "PR is now a draft; readiness will be removed"
+          elif [ "$current_head" != "$EXPECTED_HEAD_SHA" ]; then
+            echo "Head advanced during review; leaving the live head's readiness untouched"
+            exit 0
+          elif [ "$current_base" != "$EXPECTED_PR_BASE_SHA" ]; then
+            echo "Base advanced during review; leaving any newer review state untouched"
+            exit 0
+          elif [ "$current_base_ref" != "$default_branch" ] \
+               || [ "$current_policy_sha" != "$TRUSTED_BASE_SHA" ]; then
+            echo "Trusted review policy is no longer the live default-branch policy; readiness remains absent"
+          elif [ "$current_context_sha256" != "$event_context_sha256" ]; then
+            echo "PR title or description changed; leaving any newer review state untouched"
+            exit 0
+          elif [ "${{ needs.review.result }}" != "success" ]; then
+            echo "Review job did not complete successfully; readiness remains absent"
+          elif [ "$REVIEW_BASE_SHA" != "$TRUSTED_BASE_SHA" ] \
+               || [ "$REVIEW_CONTEXT_SHA256" != "$event_context_sha256" ]; then
+            echo "Review evidence is missing or not bound to this event; readiness remains absent"
+          elif [ "${{ needs.review.outputs.opted_out }}" = "true" ]; then
+            echo "Review was opted out; readiness remains absent"
+          elif [ "${{ needs.review.outputs.gate_ok }}" != "true" ]; then
+            echo "Functional gate did not pass; readiness remains absent"
+          elif [ "${{ needs.review.outputs.gptzero_head_sha }}" != "$EXPECTED_HEAD_SHA" ] \
+               || [ "${{ needs.review.outputs.gptzero_status }}" != "pass" ]; then
+            echo "GPTZero gate did not pass for this head; readiness remains absent"
+          elif [ "${{ needs.review.outputs.comment_ready }}" != "true" ] \
+               || [ "${{ needs.review.outputs.review_state }}" != "ready" ] \
+               || [ "${{ steps.post.outputs.published }}" != "true" ]; then
+            echo "Review comment was not published; readiness remains absent"
+          else
             ready=true
           fi
+
           if [ "$ready" = "true" ]; then
             # Use the REST endpoint directly. `gh pr edit` queries the retired
             # Projects (classic) GraphQL field before changing labels and now
             # fails even though the workflow token has the required access.
             jq -nc --arg value "$LABEL" '{labels:[$value]}' \
               | gh api -X POST "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/labels" --input - > /dev/null
-            echo "Label applied"
+            post_pr=$(gh api "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}")
+            post_base_ref=$(jq -r '.base.ref' <<< "$post_pr")
+            post_policy_sha=$(gh api \
+              "repos/${GITHUB_REPOSITORY}/commits/${encoded_branch}" --jq '.sha')
+            post_context_sha256=$(jq -S -c '{title: (.title // ""), body: (.body // "")}' \
+              <<< "$post_pr" | sha256sum | cut -d' ' -f1)
+            if [ "$(jq -r '.head.sha' <<< "$post_pr")" != "$EXPECTED_HEAD_SHA" ] \
+               || [ "$(jq -r '.base.sha' <<< "$post_pr")" != "$EXPECTED_PR_BASE_SHA" ] \
+               || [ "$(jq -r '.state' <<< "$post_pr")" != "open" ] \
+               || [ "$(jq -r '.draft' <<< "$post_pr")" = "true" ] \
+               || [ "$post_base_ref" != "$default_branch" ] \
+               || [ "$post_policy_sha" != "$TRUSTED_BASE_SHA" ] \
+               || [ "$post_context_sha256" != "$event_context_sha256" ]; then
+              encoded_label=$(jq -rn --arg value "$LABEL" '$value | @uri')
+              labels=$(gh api "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/labels" --paginate --jq '.[].name')
+              if grep -Fxq "$LABEL" <<< "$labels"; then
+                gh api -X DELETE \
+                  "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/labels/${encoded_label}" \
+                  > /dev/null
+              fi
+              labels=$(gh api "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/labels" --paginate --jq '.[].name')
+              if grep -Fxq "$LABEL" <<< "$labels"; then
+                echo "::error::Could not remove stale readiness label"
+                exit 1
+              fi
+              echo "Readiness changed during label application; stale label removed"
+            else
+              echo "Label applied"
+            fi
           else
-            encoded_label=$(jq -rn --arg value "$LABEL" '$value | @uri')
-            gh api -X DELETE \
-              "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/labels/${encoded_label}" \
-              > /dev/null 2>&1 || true
-            echo "Label absent or removed"
+            labels=$(gh api "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/labels" --paginate --jq '.[].name')
+            if grep -Fxq "$LABEL" <<< "$labels"; then
+              encoded_label=$(jq -rn --arg value "$LABEL" '$value | @uri')
+              gh api -X DELETE \
+                "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/labels/${encoded_label}" \
+                > /dev/null
+              echo "Label removed"
+            else
+              echo "Label absent"
+            fi
           fi

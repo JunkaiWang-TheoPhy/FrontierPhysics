@@ -1,0 +1,189 @@
+name: invalidate-agent-review-readiness
+
+# A ready label is evidence about both a PR head and the trusted review base
+# on the base branch. pull_request_target does not re-run merely because main
+# advances, so every main update removes labels whose bot-authored evidence was
+# produced from an older base commit. Authors can push or edit their PR to
+# obtain a fresh review against the latest task-review skill and gate.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: invalidate-agent-review-readiness
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  pull-requests: read
+  issues: write
+
+jobs:
+  clear-ready-labels:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Invalidate readiness based on an older trusted base
+        env:
+          GH_TOKEN: ${{ github.token }}
+          LABEL: ready for human review
+        run: |
+          set -euo pipefail
+          repo=$(gh api "repos/${GITHUB_REPOSITORY}")
+          default_branch=$(jq -er '.default_branch' <<< "$repo")
+          encoded_branch=$(jq -rn --arg value "$default_branch" '$value | @uri')
+          refresh_target_base() {
+            target_base_sha=$(gh api \
+              "repos/${GITHUB_REPOSITORY}/commits/${encoded_branch}" --jq '.sha')
+          }
+          refresh_target_base
+          gh api --paginate --slurp \
+            "repos/${GITHUB_REPOSITORY}/pulls?state=open&base=${encoded_branch}&per_page=100" \
+            > open_pull_request_pages.json
+          jq -r --arg label "$LABEL" \
+            '.[][] | select(any(.labels[]?; .name == $label)) | .number' \
+            open_pull_request_pages.json > ready_pr_numbers.txt
+
+          marker_prefix='<!-- frontierphysics-agent-review '
+          encoded_label=$(jq -rn --arg value "$LABEL" '$value | @uri')
+
+          refresh_evidence() {
+            local number=$1
+            gh api "repos/${GITHUB_REPOSITORY}/pulls/${number}" > current_pr.json
+            gh api "repos/${GITHUB_REPOSITORY}/issues/${number}/comments" \
+              --paginate --slurp > current_comments.json
+            jq --arg prefix "$marker_prefix" \
+              '([.[][] | select(.user.login == "github-actions[bot]" and (.body | startswith($prefix)))] | last) // {}' \
+              current_comments.json > current_evidence_comment.json
+          }
+
+          evidence_is_current_and_ready() {
+            [ "$(jq -r '.state' current_pr.json)" = "open" ] || return 1
+            [ "$(jq -r '.draft' current_pr.json)" != "true" ] || return 1
+            [ "$(jq -r '.base.ref' current_pr.json)" = "$default_branch" ] || return 1
+
+            local live_head live_context marker_line evidence
+            live_head=$(jq -er '.head.sha' current_pr.json)
+            live_context=$(jq -S -c '{title: (.title // ""), body: (.body // "")}' \
+              current_pr.json | sha256sum | cut -d' ' -f1)
+            marker_line=$(jq -r '.body // "" | split("\n")[0]' current_evidence_comment.json)
+            evidence=$(jq -nce --arg line "$marker_line" '
+              try ($line | capture(
+                "^<!-- frontierphysics-agent-review base=(?<base>[0-9a-f]{40}) head=(?<head>[0-9a-f]{40}) context=(?<context>[0-9a-f]{64}) state=(?<state>ready|blocked|incomplete) -->$"
+              )) catch empty
+            ') || return 1
+            jq -e \
+              --arg base "$target_base_sha" \
+              --arg head "$live_head" \
+              --arg context "$live_context" \
+              '.base == $base and .head == $head and .context == $context and .state == "ready"' \
+              <<< "$evidence" > /dev/null
+          }
+
+          invalidated=0
+          kept=0
+          restored=0
+          while IFS= read -r number; do
+            [ -n "$number" ] || continue
+            refresh_target_base
+            refresh_evidence "$number"
+            if evidence_is_current_and_ready; then
+              echo "Kept fresh readiness on PR #${number}"
+              kept=$((kept + 1))
+              continue
+            fi
+
+            # Close the base-advance/evidence-update window before mutation.
+            # A delayed run always reconciles against the latest default tip,
+            # never only the push SHA that originally woke it.
+            refresh_target_base
+            refresh_evidence "$number"
+            if evidence_is_current_and_ready; then
+              echo "Kept readiness refreshed before mutation on PR #${number}"
+              kept=$((kept + 1))
+              continue
+            fi
+
+            if ! gh api -X DELETE \
+                 "repos/${GITHUB_REPOSITORY}/issues/${number}/labels/${encoded_label}" \
+                 > /dev/null 2>&1; then
+              labels=$(gh api "repos/${GITHUB_REPOSITORY}/issues/${number}/labels" \
+                --paginate --jq '.[].name')
+              if grep -Fxq "$LABEL" <<< "$labels"; then
+                echo "::error::Could not invalidate readiness on PR #${number}"
+                exit 1
+              fi
+              echo "Readiness on PR #${number} was concurrently removed"
+            else
+              echo "Invalidated readiness on PR #${number}"
+              invalidated=$((invalidated + 1))
+            fi
+
+            # A fresh review can finish between our first evidence read and
+            # deletion. Re-read the generation-bound bot marker and restore
+            # the idempotent label if it now proves readiness on this base.
+            refresh_target_base
+            refresh_evidence "$number"
+            if evidence_is_current_and_ready; then
+              jq -nc --arg value "$LABEL" '{labels:[$value]}' \
+                | gh api -X POST \
+                    "repos/${GITHUB_REPOSITORY}/issues/${number}/labels" \
+                    --input - > /dev/null
+              echo "Restored concurrently refreshed readiness on PR #${number}"
+              restored=$((restored + 1))
+            fi
+          done < ready_pr_numbers.txt
+
+          # Verify that every snapshotted label is either absent or backed by
+          # current ready evidence. This catches partial API failures without
+          # treating a concurrent idempotent removal as an error.
+          while IFS= read -r number; do
+            [ -n "$number" ] || continue
+            refresh_target_base
+            labels=$(gh api "repos/${GITHUB_REPOSITORY}/issues/${number}/labels" \
+              --paginate --jq '.[].name')
+            if grep -Fxq "$LABEL" <<< "$labels"; then
+              refresh_evidence "$number"
+              if ! evidence_is_current_and_ready; then
+                refresh_target_base
+                refresh_evidence "$number"
+                if evidence_is_current_and_ready; then
+                  continue
+                fi
+                if ! gh api -X DELETE \
+                     "repos/${GITHUB_REPOSITORY}/issues/${number}/labels/${encoded_label}" \
+                     > /dev/null 2>&1; then
+                  labels=$(gh api "repos/${GITHUB_REPOSITORY}/issues/${number}/labels" \
+                    --paginate --jq '.[].name')
+                  if grep -Fxq "$LABEL" <<< "$labels"; then
+                    echo "::error::Could not reconcile stale readiness on PR #${number}"
+                    exit 1
+                  fi
+                else
+                  echo "Removed readiness that became stale during reconciliation on PR #${number}"
+                  invalidated=$((invalidated + 1))
+                fi
+
+                refresh_target_base
+                refresh_evidence "$number"
+                if evidence_is_current_and_ready; then
+                  jq -nc --arg value "$LABEL" '{labels:[$value]}' \
+                    | gh api -X POST \
+                        "repos/${GITHUB_REPOSITORY}/issues/${number}/labels" \
+                        --input - > /dev/null
+                  echo "Restored readiness refreshed during final reconciliation on PR #${number}"
+                  restored=$((restored + 1))
+                else
+                  labels=$(gh api "repos/${GITHUB_REPOSITORY}/issues/${number}/labels" \
+                    --paginate --jq '.[].name')
+                  if grep -Fxq "$LABEL" <<< "$labels"; then
+                    echo "::error::PR #${number} still has readiness without current-base evidence"
+                    exit 1
+                  fi
+                fi
+              fi
+            fi
+          done < ready_pr_numbers.txt
+          echo "Invalidated ${invalidated}, kept ${kept}, and restored ${restored} ready label(s)"
