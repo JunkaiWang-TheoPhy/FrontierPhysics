@@ -74,7 +74,7 @@ class EchoServer:
         while not self.stop.is_set():
             try:
                 client, _ = self.listener.accept()
-            except TimeoutError:
+            except socket.timeout:  # noqa: UP041  # Not an alias of TimeoutError on Python 3.8.
                 continue
             except OSError:
                 return
@@ -319,6 +319,24 @@ class StreamingIntegrationTests(unittest.TestCase):
             stop.set()
             listener.close()
             thread.join(timeout=2)
+
+    def test_listener_handles_pre_python_310_socket_timeout(self) -> None:
+        class LegacySocketTimeout(OSError):
+            pass
+
+        stop = threading.Event()
+        listener = mock.Mock()
+
+        def accept() -> None:
+            if listener.accept.call_count == 1:
+                raise LegacySocketTimeout
+            stop.set()
+            raise OSError
+
+        listener.accept.side_effect = accept
+        with mock.patch.object(proxy.socket, "timeout", LegacySocketTimeout):
+            proxy.serve_connections(listener, lambda _client: None, stop)
+        self.assertEqual(listener.accept.call_count, 2)
 
     @unittest.skipUnless(os.name == "posix", "mode and POSIX signal lifecycle test")
     def test_serve_cli_publishes_mode_0600_then_cleans_paths(self) -> None:

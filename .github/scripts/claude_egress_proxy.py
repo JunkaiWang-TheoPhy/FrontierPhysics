@@ -23,10 +23,11 @@ import stat
 import subprocess
 import sys
 import threading
-from collections.abc import Callable, Sequence
+from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from types import FrameType
+from typing import Callable  # noqa: UP035  # collections.abc is not subscriptable on Python 3.8.
 
 ALLOWED_HOSTS = frozenset({"api.anthropic.com", "platform.claude.com"})
 ALLOWED_PORT = 443
@@ -294,7 +295,7 @@ def serve_connections(
     while not stop.is_set():
         try:
             client, _ = listener.accept()
-        except TimeoutError:
+        except socket.timeout:  # noqa: UP041  # Not an alias of TimeoutError on Python 3.8.
             continue
         except OSError:
             if stop.is_set():
