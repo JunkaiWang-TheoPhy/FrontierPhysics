@@ -532,6 +532,7 @@ jobs:
           PY
 
       - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        id: review_python
         if: steps.pr_context.outputs.review_scope_valid == 'true' && steps.optout.outputs.skip != 'true'
         with:
           python-version: "3.12"
@@ -719,7 +720,7 @@ jobs:
              && [ -n "$STRUCTURED_OUTPUT" ] \
              && printf '%s' "$STRUCTURED_OUTPUT" \
                   | jq -er '.review_comment | select(type == "string")' > agent-review-comment.md \
-             && python3 .github/scripts/validate_agent_review_comment.py \
+             && "${{ steps.review_python.outputs.python-path }}" .github/scripts/validate_agent_review_comment.py \
                   --comment agent-review-comment.md \
                   --ai-report ai_detection.json \
                   --expected-ai-report-sha256 "$EXPECTED_AI_REPORT_SHA256" \

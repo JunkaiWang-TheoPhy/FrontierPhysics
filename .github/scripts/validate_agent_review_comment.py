@@ -210,7 +210,8 @@ def _normalize_comment(raw: bytes) -> str:
     # that one exact presentation variant as the same trusted footer and emit
     # the canonical single-line form.
     if text.endswith(WRAPPED_FOOTER + "\n"):
-        text = text.removesuffix(WRAPPED_FOOTER + "\n") + FOOTER + "\n"
+        wrapped_suffix = WRAPPED_FOOTER + "\n"
+        text = text[: -len(wrapped_suffix)] + FOOTER + "\n"
     if any(ord(character) < 32 and character != "\n" for character in text):
         raise ValidationError("review comment contains a control character")
     if len(re.findall(r"\S+", text)) > MAX_COMMENT_WORDS:
@@ -479,7 +480,11 @@ def validate_comment(
         _require_report_errors(text, report)
 
     trusted_ai_summary = _trusted_ai_summary(report)
-    without_footer = text.removesuffix(FOOTER + "\n").rstrip()
+    footer_suffix = FOOTER + "\n"
+    # ``str.removesuffix`` is Python 3.9+.  The self-hosted runner's system
+    # ``python3`` is currently 3.8, so keep the trusted validator portable even
+    # though the workflow also pins its invocation to setup-python's 3.12 path.
+    without_footer = text[: -len(footer_suffix)].rstrip()
     canonical = f"{without_footer}\n\n{trusted_ai_summary}\n\n{FOOTER}\n"
     canonical_bytes = canonical.encode("utf-8")
     metadata = {

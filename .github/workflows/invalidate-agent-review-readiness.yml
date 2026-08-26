@@ -42,8 +42,8 @@ jobs:
           gh api --paginate --slurp \
             "repos/${GITHUB_REPOSITORY}/pulls?state=open&base=${encoded_branch}&per_page=100" \
             > open_pull_request_pages.json
-          jq -r --arg label "$LABEL" \
-            '.[][] | select(any(.labels[]?; .name == $label)) | .number' \
+          jq -r --arg target_label "$LABEL" \
+            '.[][] | select(any(.labels[]?; .name == $target_label)) | .number' \
             open_pull_request_pages.json > ready_pr_numbers.txt
 
           marker_prefix='<!-- frontierphysics-agent-review '
