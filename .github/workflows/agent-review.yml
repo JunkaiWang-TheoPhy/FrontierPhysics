@@ -709,18 +709,27 @@ jobs:
           EXPECTED_AI_STATUS: ${{ steps.gptzero.outputs.status }}
           EXPECTED_AI_REPORT_SHA256: ${{ steps.gptzero.outputs.report_sha256 }}
           EXPECTED_HEAD_SHA: ${{ needs.resolve-pr.outputs.head_sha }}
+          REVIEW_PYTHON: ${{ steps.review_python.outputs.python-path }}
         run: |
           set -euo pipefail
           publishable=false
+          validation_failed=false
           review_state=invalid
           comment_sha256=""
+          review_python_lib=""
+          if [ -n "$REVIEW_PYTHON" ]; then
+            review_python_lib="$(dirname "$(dirname "$REVIEW_PYTHON")")/lib"
+          fi
 
           if [ "${{ steps.gate.outputs.ok }}" = "true" ] \
              && [ "${{ steps.review_agent.outcome }}" = "success" ] \
+             && [ -x "$REVIEW_PYTHON" ] \
+             && [ -d "$review_python_lib" ] \
              && [ -n "$STRUCTURED_OUTPUT" ] \
              && printf '%s' "$STRUCTURED_OUTPUT" \
                   | jq -er '.review_comment | select(type == "string")' > agent-review-comment.md \
-             && "${{ steps.review_python.outputs.python-path }}" .github/scripts/validate_agent_review_comment.py \
+             && LD_LIBRARY_PATH="$review_python_lib" \
+                  "$REVIEW_PYTHON" .github/scripts/validate_agent_review_comment.py \
                   --comment agent-review-comment.md \
                   --ai-report ai_detection.json \
                   --expected-ai-report-sha256 "$EXPECTED_AI_REPORT_SHA256" \
@@ -734,11 +743,15 @@ jobs:
             comment_sha256=$(jq -er '.comment_sha256' review-comment-validation.json)
           elif [ "${{ steps.gate.outputs.ok }}" = "true" ]; then
             echo "::error::Agent review output was missing or failed trusted validation"
+            validation_failed=true
           fi
 
           echo "ready=$publishable" >> "$GITHUB_OUTPUT"
           echo "review_state=$review_state" >> "$GITHUB_OUTPUT"
           echo "comment_sha256=$comment_sha256" >> "$GITHUB_OUTPUT"
+          if [ "$validation_failed" = "true" ]; then
+            exit 1
+          fi
 
       - name: Transfer review comment to the write-scoped publisher
         if: steps.comment.outputs.ready == 'true'
