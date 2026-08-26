@@ -17,9 +17,12 @@ permissions:
 
 jobs:
   validate-tasks:
-    # PR-controlled Python is executed below. Keep it off the persistent
-    # self-hosted runner and use an isolated, disposable worker.
-    runs-on: ubuntu-latest
+    # PR-controlled Python is executed below, so this job runs on the sandbox
+    # runner (unprivileged ghsandbox account, isolated from the trusted host),
+    # never on the trusted runner. CI_MODE=github flips ALL jobs to
+    # GitHub-hosted; any other value keeps self-hosted routing, and this job's
+    # only self-hosted target is 'sandbox' — it can never reach 'trusted'.
+    runs-on: ${{ vars.CI_MODE == 'github' && 'ubuntu-latest' || 'sandbox' }}
     steps:
       - name: Check out the code under test (for PRs, the merge result — unavailable until merge conflicts are resolved)
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -61,9 +64,9 @@ jobs:
   # Scoped this way the check is safe to promote to a required merge-queue
   # gate (see the main-merge-queue ruleset).
   lint:
-    # Ruff imports/reads PR-controlled paths; isolate fork input from the
-    # persistent self-hosted host for the same reason as validate-tasks.
-    runs-on: ubuntu-latest
+    # Ruff imports/reads PR-controlled paths; isolated from the trusted
+    # runner for the same reason as validate-tasks (see above).
+    runs-on: ${{ vars.CI_MODE == 'github' && 'ubuntu-latest' || 'sandbox' }}
     steps:
       - name: Check out the code under test (for PRs, the merge result — unavailable until merge conflicts are resolved)
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4

@@ -22,7 +22,7 @@ permissions:
 
 jobs:
   clear-ready-labels:
-    runs-on: ${{ vars.CI_RUNNER }}
+    runs-on: ${{ vars.CI_MODE == 'github' && 'ubuntu-latest' || 'trusted' }}
     timeout-minutes: 10
     steps:
       - name: Invalidate readiness based on an older trusted base

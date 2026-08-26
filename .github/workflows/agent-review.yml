@@ -54,7 +54,7 @@ permissions:
 
 jobs:
   resolve-pr:
-    runs-on: ${{ vars.CI_RUNNER }}
+    runs-on: ${{ vars.CI_MODE == 'github' && 'ubuntu-latest' || 'trusted' }}
     permissions:
       contents: read
       pull-requests: read
@@ -143,7 +143,7 @@ jobs:
   clear-unresolved-readiness:
     needs: resolve-pr
     if: ${{ !cancelled() && always() && needs.resolve-pr.result == 'failure' }}
-    runs-on: ${{ vars.CI_RUNNER }}
+    runs-on: ${{ vars.CI_MODE == 'github' && 'ubuntu-latest' || 'trusted' }}
     permissions:
       contents: read
       pull-requests: write
@@ -194,7 +194,7 @@ jobs:
   clear-inactive-readiness:
     needs: resolve-pr
     if: ${{ needs.resolve-pr.outputs.state != 'open' || needs.resolve-pr.outputs.draft == 'true' }}
-    runs-on: ${{ vars.CI_RUNNER }}
+    runs-on: ${{ vars.CI_MODE == 'github' && 'ubuntu-latest' || 'trusted' }}
     permissions:
       contents: read
       pull-requests: write
@@ -230,7 +230,7 @@ jobs:
   clear-current-readiness:
     needs: resolve-pr
     if: ${{ needs.resolve-pr.outputs.state == 'open' && needs.resolve-pr.outputs.draft != 'true' }}
-    runs-on: ${{ vars.CI_RUNNER }}
+    runs-on: ${{ vars.CI_MODE == 'github' && 'ubuntu-latest' || 'trusted' }}
     permissions:
       contents: read
       pull-requests: write
@@ -279,7 +279,10 @@ jobs:
     # unavailable. The model-controlled Claude CLI therefore runs inside a
     # filesystem-minimal Bubblewrap sandbox on Linux; the persistent host is
     # not mounted, and PR files remain read-only data.
-    runs-on: [self-hosted, Linux, X64]
+    # Pinned to the trusted runner: a bare self-hosted request would also
+    # match the untrusted-code sandbox runner, whose account must never see
+    # this job's credentials.
+    runs-on: ${{ vars.CI_MODE == 'github' && 'ubuntu-latest' || 'trusted' }}
     timeout-minutes: 30
     env:
       # The trusted validator permits exactly these mentions, and only in a
@@ -765,7 +768,7 @@ jobs:
   publish:
     needs: [resolve-pr, clear-current-readiness, review]
     if: ${{ !cancelled() && always() && needs.resolve-pr.outputs.state == 'open' && needs.resolve-pr.outputs.draft != 'true' }}
-    runs-on: ${{ vars.CI_RUNNER }}
+    runs-on: ${{ vars.CI_MODE == 'github' && 'ubuntu-latest' || 'trusted' }}
     permissions:
       contents: read
       pull-requests: write
