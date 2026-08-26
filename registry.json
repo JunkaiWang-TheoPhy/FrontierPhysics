@@ -19,6 +19,11 @@
         "name": "rydberg-cz-phase-noise-infidelity",
         "path": "tasks/rydberg-cz-phase-noise-infidelity",
         "digest": "sha256:ea77a7746a7afe27548b5fca2bd21230b25a4548fc4f70f14ce9ec59c957e590"
+      },
+      {
+        "name": "sipm-spe-gain-breakdown",
+        "path": "tasks/sipm-spe-gain-breakdown",
+        "digest": "sha256:8896896641438c43da17a37a7295976818da80eb7dfec6f1bb5a9d92b8929ec8"
       }
     ]
   }

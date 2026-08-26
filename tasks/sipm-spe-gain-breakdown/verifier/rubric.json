@@ -1,0 +1,60 @@
+{
+  "criteria": [
+    {
+      "name": "daq_documentation_and_decoder_reasoning",
+      "blocker": 0,
+      "weight": 8,
+      "description": "Category: research.",
+      "guidance": "The agent should establish the raw data format from the manufacturer's documentation for the CAEN DT5720, and should then check that reading against the files themselves rather than stopping at the first interpretation that runs without error. Score 2 when the format comes from the documentation and is cross-checked against the data, and the agent explicitly says which document it used and what the document told it about the event header and structure. Score 1 when the format is right and attributed to the documentation but accepted without an independent check against the data. Score 0 when the agent didn't refer to the documentation at all."
+    },
+    {
+      "name": "charge_spectrum_interpretation",
+      "blocker": 0,
+      "weight": 8,
+      "description": "Category: implementation.",
+      "guidance": "The pulse-area spectrum is not a single peak, but noise + single PE + double PE, etc. And the gain calibration should use the separation between adjacent populations rather than the absolute position of any one of them. Do not require any particular fit function, as that is a reasonable flexibility. Score 2 when the agent identifies the noise + real photoelectron signal structure and clearly states that the noise population carries no actual signal and therefore should not be used for the gain calibration. Also the agent needs to realize it should use the spacing between adjacent populations, which in this data means noise and single PE, as the double PE peak has too few events to fix a centre. Score 1 when the reported quantity is a combination of several populations, but the reasoning is missing, for example the populations are named without a physical account; the noise population is mistakenly fixed to 0 with no check; or the agent leans on the sparse double PE peak to fix the spacing. Score 0 when the agent fails to identify the noise + real photoelectron signal structure and fits the whole spectrum with a single phenomenological function."
+    },
+    {
+      "name": "acquisition_threshold_awareness",
+      "blocker": 0,
+      "weight": 6,
+      "description": "Category: implementation.",
+      "guidance": "Each bias point was recorded several times with different triggering thresholds. The agent should recognise that the threshold selects which events are recorded and therefore could bias the response. Score 2 when the agent examines whether its result moves with threshold, comparing the numbers it extracted at different thresholds, and uses the outcome when it combines or excludes those data points. Score 1 when it recognises in plain text that the threshold selects events and could bias the result, but never tests it, or tests it and does not act on what it finds. Score 0 when the agent didn't realise the threshold could bias the outcome at all."
+    },
+    {
+      "name": "campaign_sufficiency_reasoning",
+      "blocker": 0,
+      "weight": 6,
+      "description": "Category: implementation.",
+      "guidance": "Breakdown voltage is an extrapolation of the charge separation against bias, so a cooldown needs enough distinct bias voltages to enable the breakdown voltage measurement. Using a thin cooldown as a cross-check, or inside a joint model, is a good behavior; reporting it as an independent calibration is not. Score 2 when the agent decides for itself which cooldowns qualify and says on what grounds. Score 1 when the set it calibrates is right but the standard of the selection is implicit. Score 0 when a cooldown with no usable bias ladder is used for an independently determined breakdown voltage."
+    },
+    {
+      "name": "breakdown_extrapolation_reasoning",
+      "blocker": 0,
+      "weight": 8,
+      "description": "Category: implementation.",
+      "guidance": "The breakdown voltage is not measured, it is extrapolated: the bias ladder spans a few volts and the intercept sits about six volts below the lowest point on it. That lever arm amplifies whatever the fit does, so a one percent error in the slope moves the breakdown voltage by about 0.08 V. Do not require any particular fit form, but the agent should choose one and say why it should still hold down at the intercept. Score 2 when the agent recognises how far the extrapolation reaches and says what it assumed about the shape of the separation against bias, and, where its fit looked poor, established that the misfit was real before it changed the fit. Checking whether an apparent misfit comes from its own error bars rather than from the data counts here. Score 1 when the fit is reasonable but the extrapolation is treated as though it were an interpolation, for example quoting a fit quality with no account of the distance down to the intercept. Score 0 when the agent gives the fit more freedom, letting it bend or adding another term, to follow residuals inside the measured range and then extrapolates that shape outside it, or when it cannot say why the form it chose should hold at the intercept."
+    },
+    {
+      "name": "measured_temperature_usage",
+      "blocker": 1,
+      "weight": 10,
+      "description": "Category: implementation.",
+      "guidance": "This criterion is a blocker: judge it pass or fail. Whether the analysis used the temperature is a crucial behavior, and getting it wrong makes the whole temperature dependence wrong. The setpoint in the file names is what the controller was asked for, not what the sensor read, and the two differ by a few kelvin. Pass when each cooldown's quoted temperature actually comes from the cryostat logs in the corresponding acquisition window. Fail when a nominal setpoint is directly taken as the groundtruth, or when the reported temperatures come from neither the log nor the setpoint."
+    },
+    {
+      "name": "uncertainty_and_method_systematic_treatment",
+      "blocker": 0,
+      "weight": 8,
+      "description": "Category: implementation.",
+      "guidance": "Quoted uncertainties should be derived from the data, the fitting models, or the variation between repeated measurements. The agent should state the source of each uncertainty and how to combine them. Key words include but are not limited to fit covariance, bootstrap or other resampling, the spread across repeated acquisitions; no specific formula is required though. Judge the error bar on its own, independently of whether the central value is correct: the deterministic tests grade correctness, this criterion grades the uncertainty estimation. A wide uncertainty is not by itself evidence of care; it must trace to something the agent measured. Score 2 when the agent identifies one or several specific systematics affecting its result, for example a dependence on threshold, gate or estimator, or a drift in the acquisition conditions, quantifies it from its own data, and propagates it. A systematic that shifts every cooldown by the same amount largely cancels in the temperature dependence, while one that varies between them does not, and at this level the agent should say which of the two it is. Score 1 when it does not explicitly state the mechanism but gives an empirical budget from sensitivity variations, method spread or repeat scatter. Score 0 when it gives a statistical-only uncertainty and didn't consider any systematics at all, or when it inflates the uncertainty with no reason, or when the number is only a placeholder or obviously inconsistent with its own results."
+    },
+    {
+      "name": "no_answer_shortcuts",
+      "blocker": 1,
+      "weight": 10,
+      "description": "Category: implementation.",
+      "guidance": "This criterion is a blocker: judge it pass or fail. As this is a data-centric task, we need to be strict here. The calibration must come from the original input datasets and the fitting, and the data analysis. The agent should not replace or modify any original or intermediate data in the full input data -> final output pipeline. Manipulating numbers to make a result look consistent is prohibited, and so is discarding inconvenient data without evidence. Pass when every reported number traces back to the original input dataset through the agent's own analysis and data pipeline. Fail on any other route to the answer, for example: asserting that a check passed without showing relevant result, manipulate data without clear statement of physics motivation, or files that exist but carry nothing derived from any data or analysis."
+    }
+  ]
+}

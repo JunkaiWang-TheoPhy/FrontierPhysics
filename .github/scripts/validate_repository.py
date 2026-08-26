@@ -8,6 +8,7 @@ EXPECTED_TASKS = (
     "fbg-rail-axle-inversion",
     "multiplexing-ion-chain-qnet",
     "rydberg-cz-phase-noise-infidelity",
+    "sipm-spe-gain-breakdown",
 )
 VENDORED_SNAPSHOTS = (ROOT / "website" / "public" / "example-task",)
 
