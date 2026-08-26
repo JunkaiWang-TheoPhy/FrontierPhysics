@@ -314,7 +314,7 @@ wheels = [
 
 [[package]]
 name = "benchflow"
-version = "0.6.9"
+version = "0.7.5"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "agent-client-protocol" },
@@ -329,9 +329,9 @@ dependencies = [
     { name = "tomli-w" },
     { name = "typer" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/da/5a/d1ed4437a684fd00b6fb02a5982c3b4c3d814950afcf24a65cfcec93a69f/benchflow-0.6.9.tar.gz", hash = "sha256:8e118807ea00b1c36fbfcda7d5956825507a4ab8eb4f01806614ca051daa5c4b", size = 1854353, upload-time = "2026-08-15T18:30:39.047Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/b8/15/242792f0bc6241df8eda144de1975bb9eb29d91e2161286974b65bb4daca/benchflow-0.7.5.tar.gz", hash = "sha256:14f7bd78ee357b75dfe01c43bb3d599cc33f960d52b0354137a4c6ffa1d307c7", size = 1936169, upload-time = "2026-08-20T06:28:55.879Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/d5/b8/7bae7973cd0caa11d65ad5004152c08dc3c82b2e2d580150e1957db4bbb2/benchflow-0.6.9-py3-none-any.whl", hash = "sha256:916c4019d5ca66bac6c6d3de1a8439261f710eb86eec781956baa626deb34e9a", size = 1070099, upload-time = "2026-08-15T18:30:37.654Z" },
+    { url = "https://files.pythonhosted.org/packages/59/d1/31a334462661a99c6a5fa2c8688e49db70f94632fe62b8b532a6a47aeae1/benchflow-0.7.5-py3-none-any.whl", hash = "sha256:88b18be1a3f4789706387d22604b30c440333586b8eadb3214211200dade1917", size = 1114775, upload-time = "2026-08-20T06:28:54.418Z" },
 ]
 
 [package.optional-dependencies]
@@ -959,7 +959,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "benchflow", extras = ["sandbox-daytona"], specifier = ">=0.6.7,<0.7" },
+    { name = "benchflow", extras = ["sandbox-daytona"], specifier = ">=0.7.5,<0.8" },
     { name = "pyyaml", specifier = ">=6.0.0" },
 ]
 

@@ -5,7 +5,7 @@ description = "The first end-to-end physics discovery benchmark for agents."
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "benchflow[sandbox-daytona]>=0.6.7,<0.7",
+    "benchflow[sandbox-daytona]>=0.7.5,<0.8",
     "pyyaml>=6.0.0",
 ]
 

@@ -2,9 +2,9 @@
 """Validate that every task directory uses the native FrontierPhysics structure.
 
 FrontierPhysics stores each task as a native BenchFlow task.md package:
-`task.md`, `environment/Dockerfile`, and non-empty `oracle/` and `verifier/`
-directories. Split-layout files are rejected so the default corpus cannot
-quietly drift back to the old format.
+`task.md`, `environment/Dockerfile`, non-empty `oracle/` and `verifier/`
+directories, and a weighted rubric. Split-layout files and legacy rubrics are
+rejected so the default corpus cannot quietly drift back to an old format.
 
 Run locally with `uv run python .github/scripts/validate_tasks.py tasks`
 and in CI as the merge-queue gate (which installs PyYAML first). Exits
@@ -13,6 +13,7 @@ non-zero if any structural problem is found.
 
 from __future__ import annotations
 
+import json
 import sys
 from pathlib import Path
 
@@ -35,11 +36,19 @@ REQUIRED_ENTRYPOINTS = (
     ("verifier", "test.sh"),
 )
 
+REQUIRED_RUBRIC_FIELDS = (
+    "name",
+    "blocker",
+    "weight",
+    "description",
+    "guidance",
+)
+
 
 def frontmatter_error(md_path: Path) -> str | None:
     """Return a problem string unless md_path starts with parseable YAML
     frontmatter between `---` fences."""
-    lines = md_path.read_text().splitlines(keepends=True)
+    lines = md_path.read_text(encoding="utf-8").splitlines(keepends=True)
     if not lines or lines[0].strip() != "---":
         return "task.md does not start with a `---` frontmatter fence"
     for i, line in enumerate(lines[1:], start=1):
@@ -52,6 +61,45 @@ def frontmatter_error(md_path: Path) -> str | None:
                 return "task.md frontmatter is not a YAML mapping"
             return None
     return "task.md frontmatter has no closing `---` fence"
+
+
+def rubric_problems(task: Path) -> list[str]:
+    """Validate the repository's weighted-only rubric policy."""
+    rubric_path = task / "verifier" / "rubric.json"
+    if not rubric_path.is_file():
+        return [f"{task.name}: missing verifier/rubric.json"]
+
+    try:
+        rubric = json.loads(rubric_path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+        return [f"{task.name}: verifier/rubric.json is not valid UTF-8 JSON: {exc}"]
+
+    if not isinstance(rubric, dict):
+        return [f"{task.name}: verifier/rubric.json must be a JSON object"]
+    criteria = rubric.get("criteria")
+    if not isinstance(criteria, list) or not criteria:
+        return [f"{task.name}: verifier/rubric.json criteria must be a non-empty list"]
+
+    expected = set(REQUIRED_RUBRIC_FIELDS)
+    problems = []
+    for index, criterion in enumerate(criteria):
+        prefix = f"{task.name}: verifier/rubric.json criteria[{index}]"
+        if not isinstance(criterion, dict):
+            problems.append(f"{prefix} must be a JSON object")
+            continue
+
+        fields = set(criterion)
+        if fields != expected:
+            problems.append(
+                f"{prefix} must contain exactly {list(REQUIRED_RUBRIC_FIELDS)!r}; "
+                f"missing {sorted(expected - fields)!r}; extra {sorted(fields - expected)!r}"
+            )
+
+        blocker = criterion.get("blocker")
+        if type(blocker) is not int or blocker not in (0, 1):
+            problems.append(f"{prefix}.blocker must be the integer 0 or 1")
+
+    return problems
 
 
 def problems_for_task(task: Path) -> list[str]:
@@ -74,6 +122,7 @@ def problems_for_task(task: Path) -> list[str]:
     for rel, entry in REQUIRED_ENTRYPOINTS:
         if not (task / rel / entry).is_file():
             problems.append(f"{task.name}: missing {rel}/{entry}")
+    problems.extend(rubric_problems(task))
     for rel in FORBIDDEN_SPLIT_PATHS:
         if (task / rel).exists():
             problems.append(f"{task.name}: split-layout path is not allowed: {rel}")
@@ -96,16 +145,13 @@ def main() -> int:
 
     problems = validate(tasks_dirs)
     if problems:
-        print(f"❌ {len(problems)} task structure problem(s):")
+        print(f"ERROR: {len(problems)} task structure problem(s):")
         for problem in problems:
             print(f"  - {problem}")
         return 1
 
     dirs = [p for tasks_dir in tasks_dirs if tasks_dir.is_dir() for p in tasks_dir.iterdir() if p.is_dir()]
-    print(
-        f"✅ all {len(dirs)} tasks under {', '.join(str(p) for p in tasks_dirs)} "
-        "use the native task.md structure"
-    )
+    print(f"OK: all {len(dirs)} tasks under {', '.join(str(p) for p in tasks_dirs)} use the native task.md structure")
     return 0
 
 

@@ -3,7 +3,7 @@
     "name": "frontierphysics",
     "version": "0.1-dev",
     "description": "FrontierPhysics development snapshot.",
-    "bench_version": ">=0.6.7,<0.7",
+    "bench_version": ">=0.7.5,<0.8",
     "tasks": [
       {
         "name": "fbg-rail-axle-inversion",
