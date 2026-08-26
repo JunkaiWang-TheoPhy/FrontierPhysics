@@ -12,6 +12,8 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import math
+import os
 import re
 import sys
 from collections.abc import Mapping
@@ -26,8 +28,13 @@ READY_HEADER = "## ✅ Ready for human review"
 INCOMPLETE_HEADER = "## ⏳ Automated check incomplete"
 HUMAN_HEADER = "### For the human reviewer (non-binding)"
 LINT_HEADER = "### Lint notes (non-blocking)"
+TRUSTED_AI_HEADER = "### GPTZero AI-authorship evidence (trusted)"
 FOOTER = (
     "_Maintainers may override any finding here. Science acceptance is decided by "
+    "human expert review._"
+)
+WRAPPED_FOOTER = (
+    "_Maintainers may override any finding here. Science acceptance is decided by\n"
     "human expert review._"
 )
 READY_STATUS = (
@@ -44,18 +51,29 @@ BLOCKED_STATUS = re.compile(
 )
 STATUS_PREFIX = re.compile(r"^\*\*Blockers:")
 TRACK_LINE = re.compile(
-    r"^\*\*Track:\*\* "
-    r"(experiment-track|theory-track|simulation-data-numerical-track|application-track)$"
+    r"^\*\*Track:\*\* (?P<tick>`?)"
+    r"(experiment-track|theory-track|simulation-data-numerical-track|application-track)"
+    r"(?P=tick)$"
 )
 TASK_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
 MENTION = re.compile(r"(?<![A-Za-z0-9_-])@[A-Za-z0-9][A-Za-z0-9-]*")
 NUMBERED_BLOCKER = re.compile(r"^[1-9][0-9]*\. \*\*")
 HTML_TAG = re.compile(r"<\s*/?\s*[A-Za-z][^>]*>", flags=re.DOTALL)
+# Reject the beginning of a tag even when the closing ``>`` is absent.  In
+# CommonMark, type-1 raw HTML blocks such as a bare ``<script`` line can extend
+# through end-of-document and hide the trusted evidence appended below the
+# agent-controlled prose.
+HTML_TAG_PREFIX = re.compile(r"<\s*/?\s*[A-Za-z]")
 HTML_ENTITY = re.compile(r"&(?:#[0-9]+|#x[0-9A-Fa-f]+|[A-Za-z][A-Za-z0-9]+);")
+# Deliberately conservative CommonMark subset: mask only a matched pair of
+# single backticks with neither delimiter backslash-escaped. Ambiguous spans
+# remain visible to the raw-HTML check and are rejected fail-closed.
+INLINE_CODE = re.compile(r"(?<![\\`])`(?!`)[^`\n]*(?<!\\)`(?!`)")
 MARKDOWN_INLINE_LINK = re.compile(r"!?\[[^\]]*\]\s*\([^)]*\)", flags=re.DOTALL)
 MARKDOWN_REFERENCE_LINK = re.compile(r"!?\[[^\]]*\]\s*\[[^\]]*\]", flags=re.DOTALL)
 MARKDOWN_REFERENCE_DEFINITION = re.compile(r"^\s{0,3}\[[^\]\n]+\]:", flags=re.MULTILINE)
 CODE_FENCE = re.compile(r"^\s*(?:```|~~~)", flags=re.MULTILINE)
+CREDENTIAL_PREFIX = re.compile(r"(?:sk-ant-|github_pat_|gh[opsu]_)", flags=re.IGNORECASE)
 
 
 class ValidationError(RuntimeError):
@@ -116,19 +134,108 @@ def _load_ai_report(
     return report
 
 
+def _trusted_ai_summary(report: Mapping[str, Any]) -> str:
+    """Render detector evidence from the hash-bound report, never agent prose."""
+    status = report.get("status")
+    task_id = str(report["task_ids"][0])
+    threshold = float(report["threshold"])
+    if status not in {"pass", "fail", "error"} or not math.isfinite(threshold):
+        raise ValidationError("GPTZero report cannot be rendered safely")
+
+    expected_paths = {
+        f"tasks/{task_id}/task.md",
+        f"tasks/{task_id}/verifier/rubric.json",
+    }
+    seen_paths: set[str] = set()
+    result_lines: list[str] = []
+    for result in report["results"]:
+        if not isinstance(result, Mapping):
+            raise ValidationError("GPTZero result has an invalid evidence schema")
+        path = result.get("path")
+        passed = result.get("passed")
+        risk = result.get("authorship_risk")
+        if (
+            not isinstance(path, str)
+            or path not in expected_paths
+            or path in seen_paths
+            or not isinstance(passed, bool)
+            or isinstance(risk, bool)
+            or not isinstance(risk, (int, float))
+            or not math.isfinite(float(risk))
+            or not 0.0 <= float(risk) <= 1.0
+        ):
+            raise ValidationError("GPTZero result has an invalid evidence schema")
+        seen_paths.add(str(path))
+        marker = "PASS" if passed else "FAIL"
+        result_lines.append(
+            f"- **{marker}** `{path}`: {float(risk):.2%} authorship risk "
+            f"(required < {threshold:.2%})."
+        )
+
+    if status == "pass" and (seen_paths != expected_paths or report["errors"]):
+        raise ValidationError("passing GPTZero report is incomplete")
+    if status == "fail" and not any(
+        isinstance(result, Mapping) and result.get("passed") is False
+        for result in report["results"]
+    ):
+        raise ValidationError("failed GPTZero report has no failed result")
+
+    lines = [
+        TRUSTED_AI_HEADER,
+        "",
+        f"**Overall: {str(status).upper()}** — document-level AI-or-mixed "
+        f"probability must be < {threshold:.2%}.",
+    ]
+    lines.extend(result_lines)
+    if status == "error":
+        lines.append("- **ERROR** No detector score was available; readiness is withheld.")
+    elif report["errors"]:
+        lines.append("- **ERROR** A later document scan was unavailable; the earlier failure still blocks readiness.")
+    lines.extend(
+        [
+            "",
+            "_These values are classification probabilities, not percentages of words written by AI._",
+        ]
+    )
+    return "\n".join(lines)
+
+
 def _normalize_comment(raw: bytes) -> str:
     try:
         text = raw.decode("utf-8")
     except UnicodeDecodeError as exc:
         raise ValidationError("review comment is not valid UTF-8") from exc
     text = text.replace("\r\n", "\n").replace("\r", "\n").strip() + "\n"
+    # The historical prompt wrapped this fixed sentence for readability. Treat
+    # that one exact presentation variant as the same trusted footer and emit
+    # the canonical single-line form.
+    if text.endswith(WRAPPED_FOOTER + "\n"):
+        text = text.removesuffix(WRAPPED_FOOTER + "\n") + FOOTER + "\n"
     if any(ord(character) < 32 and character != "\n" for character in text):
         raise ValidationError("review comment contains a control character")
     if len(re.findall(r"\S+", text)) > MAX_COMMENT_WORDS:
         raise ValidationError(f"review comment exceeds the {MAX_COMMENT_WORDS}-word limit")
     if "<!--" in text or "-->" in text:
         raise ValidationError("review comment contains an HTML comment")
-    if HTML_TAG.search(text):
+    # GitHub renders HTML-looking physics notation safely when the *entire*
+    # construct is inside an inline-code span (for example, `<x^2>`). Check
+    # original-source positions instead of deleting spans: a backtick that
+    # starts inside an already-open HTML attribute must not hide that tag.
+    inline_spans = [(match.start(), match.end()) for match in INLINE_CODE.finditer(text)]
+
+    def inside_inline_code(start: int, end: int) -> bool:
+        return any(span_start <= start and end <= span_end for span_start, span_end in inline_spans)
+
+    if any(
+        not inside_inline_code(match.start(), match.end())
+        for match in HTML_TAG.finditer(text)
+    ) or any(
+        not inside_inline_code(match.start(), match.end())
+        for match in HTML_TAG_PREFIX.finditer(text)
+    ) or any(
+        not inside_inline_code(match.start(), match.end())
+        for match in re.finditer(r"<(?:\?|!)", text)
+    ):
         raise ValidationError("review comment contains raw HTML")
     if HTML_ENTITY.search(text):
         raise ValidationError("review comment contains an HTML entity")
@@ -142,6 +249,8 @@ def _normalize_comment(raw: bytes) -> str:
         raise ValidationError("review comment contains a Markdown link or image")
     if re.search(r"https?://", text, flags=re.IGNORECASE):
         raise ValidationError("review comment contains an external URL")
+    if CREDENTIAL_PREFIX.search(text):
+        raise ValidationError("review comment contains a credential-like token prefix")
     return text
 
 
@@ -185,14 +294,14 @@ def _require_detector_evidence(text: str, report: Mapping[str, Any]) -> None:
             or not isinstance(confidence, str)
         ):
             raise ValidationError("failed GPTZero result has an invalid evidence schema")
-        required_fragments = (
-            path,
-            f"{float(risk):.2%}",
-            f"required < {threshold:.2%}",
-            classification,
-            confidence,
-        )
-        if any(fragment not in text for fragment in required_fragments):
+        required_fragments = (path, classification, confidence)
+        risk_fragments = {f"{float(risk):.{places}%}" for places in range(3)}
+        threshold_fragments = {f"{threshold:.{places}%}" for places in range(3)}
+        if (
+            any(fragment not in text for fragment in required_fragments)
+            or not any(fragment in text for fragment in risk_fragments)
+            or not any(fragment in text for fragment in threshold_fragments)
+        ):
             raise ValidationError(f"review omits trusted GPTZero evidence for {path}")
 
 
@@ -215,6 +324,7 @@ def validate_comment(
     expected_ai_status: str,
     head_sha: str,
     ready_mentions: str,
+    forbidden_secret: str = "",
 ) -> tuple[str, dict[str, Any]]:
     """Return a canonical comment and immutable publisher metadata."""
     if expected_ai_status not in {"pass", "fail", "error"}:
@@ -228,6 +338,8 @@ def validate_comment(
     )
     raw_comment = _read_regular_bytes(comment_path, MAX_COMMENT_BYTES, "review comment")
     text = _normalize_comment(raw_comment)
+    if forbidden_secret and forbidden_secret in text:
+        raise ValidationError("review comment contains a protected workflow credential")
     lines = text.splitlines()
 
     if not lines or lines[0] != HEADER or lines.count(HEADER) != 1:
@@ -366,7 +478,9 @@ def validate_comment(
     if report["errors"]:
         _require_report_errors(text, report)
 
-    canonical = text
+    trusted_ai_summary = _trusted_ai_summary(report)
+    without_footer = text.removesuffix(FOOTER + "\n").rstrip()
+    canonical = f"{without_footer}\n\n{trusted_ai_summary}\n\n{FOOTER}\n"
     canonical_bytes = canonical.encode("utf-8")
     metadata = {
         "schema_version": 1,
@@ -408,6 +522,7 @@ def main() -> int:
             expected_ai_status=args.expected_ai_status,
             head_sha=args.head_sha,
             ready_mentions=args.ready_mentions,
+            forbidden_secret=os.environ.get("FORBIDDEN_CLAUDE_TOKEN", ""),
         )
         _write_new_regular(args.validated_comment, comment)
         _write_new_regular(

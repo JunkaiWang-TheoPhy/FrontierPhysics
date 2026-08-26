@@ -33,6 +33,15 @@ def _report(status: str, *, failed: bool = False, error: str | None = None) -> d
                 "confidence_category": "high",
             }
         )
+        results.append(
+            {
+                "path": "tasks/demo-task/verifier/rubric.json",
+                "passed": True,
+                "authorship_risk": 0.03,
+                "document_classification": "HUMAN_ONLY",
+                "confidence_category": "high",
+            }
+        )
     return {
         "schema_version": 1,
         "status": status,
@@ -139,19 +148,122 @@ class ValidatorTests(unittest.TestCase):
         self.assertEqual(metadata["review_state"], "ready")
         self.assertEqual(metadata["blocker_count"], 0)
         self.assertEqual(metadata["comment_sha256"], hashlib.sha256(canonical.encode()).hexdigest())
+        self.assertIn(validator.TRUSTED_AI_HEADER, canonical)
+        self.assertIn("**Overall: PASS**", canonical)
+        self.assertIn("`tasks/demo-task/task.md`: 5.00% authorship risk", canonical)
+        self.assertIn("`tasks/demo-task/verifier/rubric.json`: 3.00% authorship risk", canonical)
+        self.assertTrue(canonical.rstrip().endswith(validator.FOOTER))
 
     def test_valid_content_blocker_with_passing_detector(self) -> None:
         _, metadata = self._validate(_blocked_comment(), _report("pass"))
         self.assertEqual(metadata["review_state"], "blocked")
 
-    def test_valid_detector_blocker(self) -> None:
-        _, metadata = self._validate(_blocked_comment(detector=True), _report("fail", failed=True))
+    def test_valid_backtick_wrapped_track(self) -> None:
+        comment = _blocked_comment().replace(
+            "**Track:** theory-track", "**Track:** `theory-track`"
+        )
+        _, metadata = self._validate(comment, _report("pass"))
         self.assertEqual(metadata["review_state"], "blocked")
+
+    def test_valid_historically_wrapped_footer_is_canonicalized(self) -> None:
+        comment = _blocked_comment().replace(validator.FOOTER, validator.WRAPPED_FOOTER)
+        canonical, metadata = self._validate(comment, _report("pass"))
+        self.assertEqual(metadata["review_state"], "blocked")
+        self.assertTrue(canonical.rstrip().endswith(validator.FOOTER))
+        self.assertNotIn(validator.WRAPPED_FOOTER, canonical)
+
+    def test_valid_inline_code_physics_notation_is_not_raw_html(self) -> None:
+        comment = _blocked_comment().replace(
+            validator.FOOTER,
+            "- Worth checking the strict `<x^2>` ordering.\n\n" + validator.FOOTER,
+        )
+        _, metadata = self._validate(comment, _report("pass"))
+        self.assertEqual(metadata["review_state"], "blocked")
+
+    def test_rejects_html_between_escaped_backticks(self) -> None:
+        comment = _blocked_comment().replace(
+            validator.FOOTER,
+            "- Unsafe escaped delimiters: \\`<details>\\`.\n\n" + validator.FOOTER,
+        )
+        with self.assertRaisesRegex(validator.ValidationError, "raw HTML"):
+            self._validate(comment, _report("pass"))
+
+    def test_rejects_html_between_mismatched_backtick_runs(self) -> None:
+        comment = _blocked_comment().replace(
+            validator.FOOTER,
+            "- Unsafe mismatched delimiters: `<details>``.\n\n" + validator.FOOTER,
+        )
+        with self.assertRaisesRegex(validator.ValidationError, "raw HTML"):
+            self._validate(comment, _report("pass"))
+
+    def test_rejects_commonmark_special_html_openers(self) -> None:
+        for opener in ("<![CDATA[", "<!DOCTYPE html>", "<?review instruction?>"):
+            with self.subTest(opener=opener):
+                comment = _blocked_comment().replace(
+                    validator.FOOTER,
+                    f"- Unsafe raw opener: {opener}\n\n" + validator.FOOTER,
+                )
+                with self.assertRaisesRegex(validator.ValidationError, "raw HTML"):
+                    self._validate(comment, _report("pass"))
+
+    def test_rejects_code_delimiter_that_starts_inside_html_attribute(self) -> None:
+        comment = _blocked_comment().replace(
+            validator.FOOTER,
+            '- Unsafe precedence: <details title="`x">`.\n\n' + validator.FOOTER,
+        )
+        with self.assertRaisesRegex(validator.ValidationError, "raw HTML"):
+            self._validate(comment, _report("pass"))
+
+    def test_rejects_unterminated_tag_like_openers(self) -> None:
+        for opener in ("<script", "<pre", "<style", "<textarea", "<details"):
+            with self.subTest(opener=opener):
+                comment = _blocked_comment().replace(
+                    validator.FOOTER,
+                    f"- Unsafe unterminated opener: {opener}\n\n" + validator.FOOTER,
+                )
+                with self.assertRaisesRegex(validator.ValidationError, "raw HTML"):
+                    self._validate(comment, _report("pass"))
+
+    def test_valid_detector_blocker(self) -> None:
+        canonical, metadata = self._validate(_blocked_comment(detector=True), _report("fail", failed=True))
+        self.assertEqual(metadata["review_state"], "blocked")
+        self.assertIn("**Overall: FAIL**", canonical)
+
+    def test_valid_detector_evidence_with_equivalent_percentage_formatting(self) -> None:
+        comment = _blocked_comment(detector=True).replace(
+            "42.00% (required < 10.00%)",
+            "42.0%; the authorship risk must remain strictly below 10%",
+        )
+        canonical, metadata = self._validate(comment, _report("fail", failed=True))
+        self.assertEqual(metadata["review_state"], "blocked")
+        self.assertIn("42.00% authorship risk", canonical)
 
     def test_valid_incomplete_comment(self) -> None:
         message = "GPTZero API did not respond after 3 attempts"
-        _, metadata = self._validate(_incomplete_comment(message), _report("error", error=message))
+        canonical, metadata = self._validate(_incomplete_comment(message), _report("error", error=message))
         self.assertEqual(metadata["review_state"], "incomplete")
+        self.assertIn("**Overall: ERROR**", canonical)
+        self.assertIn("No detector score was available", canonical)
+
+    def test_trusted_summary_rejects_incomplete_passing_report(self) -> None:
+        report = _report("pass")
+        report["results"].pop()
+        with self.assertRaisesRegex(validator.ValidationError, "passing GPTZero report is incomplete"):
+            self._validate(_ready_comment(), report)
+
+    def test_trusted_summary_rejects_noncanonical_result_path(self) -> None:
+        report = _report("pass")
+        report["results"][0]["path"] = ["not", "a", "path"]
+        with self.assertRaisesRegex(validator.ValidationError, "invalid evidence schema"):
+            self._validate(_ready_comment(), report)
+
+    def test_rejects_credential_like_output(self) -> None:
+        comment = _ready_comment().replace(
+            validator.FOOTER,
+            "sk-ant-oat01-redacted-example\n\n" + validator.FOOTER,
+        )
+        with self.assertRaisesRegex(validator.ValidationError, "credential-like"):
+            self._validate(comment, _report("pass"))
 
     def test_checker_error_report_is_publishable_as_incomplete(self) -> None:
         message = "GPTZERO_API_KEY is not configured"

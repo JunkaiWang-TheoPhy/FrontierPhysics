@@ -15,6 +15,13 @@ import validate_pr_data_tree as validator
 
 
 class TreeContainmentTests(unittest.TestCase):
+    def test_path_containment_helper(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / "pr-head"
+            self.assertTrue(validator._is_within(root, root))
+            self.assertTrue(validator._is_within(root / "nested" / "file", root))
+            self.assertFalse(validator._is_within(root.parent / "sibling", root))
+
     def test_regular_tree_passes(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary) / "pr-head"

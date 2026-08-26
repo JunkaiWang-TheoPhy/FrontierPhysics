@@ -54,7 +54,7 @@ permissions:
 
 jobs:
   resolve-pr:
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.CI_RUNNER }}
     permissions:
       contents: read
       pull-requests: read
@@ -146,7 +146,7 @@ jobs:
     runs-on: ${{ vars.CI_RUNNER }}
     permissions:
       contents: read
-      pull-requests: read
+      pull-requests: write
       issues: write
     steps:
       - name: Fail closed when pull-request context cannot be resolved
@@ -197,7 +197,7 @@ jobs:
     runs-on: ${{ vars.CI_RUNNER }}
     permissions:
       contents: read
-      pull-requests: read
+      pull-requests: write
       issues: write
     steps:
       - name: Remove ready label from draft or closed PR
@@ -233,7 +233,7 @@ jobs:
     runs-on: ${{ vars.CI_RUNNER }}
     permissions:
       contents: read
-      pull-requests: read
+      pull-requests: write
       issues: write
     steps:
       - name: Clear stale readiness while this head is reviewed
@@ -275,15 +275,24 @@ jobs:
   review:
     needs: [resolve-pr, clear-current-readiness]
     if: ${{ !cancelled() && needs.resolve-pr.outputs.state == 'open' && needs.resolve-pr.outputs.draft != 'true' && needs.clear-current-readiness.result == 'success' }}
-    # Untrusted task prose is exposed to an agent with file-read tools. Never
-    # run that agent on the persistent self-hosted runner, where workstation
-    # files and credentials may be present outside the checkout.
-    runs-on: ubuntu-latest
+    # The private repository's hosted-runner billing can make a zero-step job
+    # unavailable. The model-controlled Claude CLI therefore runs inside a
+    # filesystem-minimal Bubblewrap sandbox on Linux; the persistent host is
+    # not mounted, and PR files remain read-only data.
+    runs-on: [self-hosted, Linux, X64]
     timeout-minutes: 30
     env:
       # The trusted validator permits exactly these mentions, and only in a
       # validated zero-blocker/pass comment.
       READY_MENTIONS: "@yuema137 @bingran-you @wenjun-ke"
+      # The full Claude process is wrapped below. Disable the action's weaker
+      # subprocess-only setup because it otherwise runs privileged apt/sysctl
+      # mutations on the persistent runner.
+      CLAUDE_CODE_SUBPROCESS_ENV_SCRUB: "0"
+      # OAuth must remain the only Anthropic credential even if the persistent
+      # runner service was started with ambient API-key variables.
+      ANTHROPIC_API_KEY: ""
+      ANTHROPIC_AUTH_TOKEN: ""
     permissions:
       contents: read
       pull-requests: read
@@ -328,7 +337,10 @@ jobs:
         run: |
           set -euo pipefail
           pull_url="repos/${GITHUB_REPOSITORY}/pulls/${{ needs.resolve-pr.outputs.pr_number }}"
-          live_pr=$(gh api "$pull_url")
+          if ! live_pr=$(gh api "$pull_url"); then
+            echo "::error::Unable to read the live pull request"
+            exit 1
+          fi
           if [ "$(jq -r '.head.sha' <<< "$live_pr")" != "$EXPECTED_HEAD_SHA" ] \
              || [ "$(jq -r '.base.sha' <<< "$live_pr")" != "$EXPECTED_BASE_SHA" ] \
              || [ "$(jq -r '.state' <<< "$live_pr")" != "open" ] \
@@ -336,31 +348,53 @@ jobs:
             echo "::error::Pull request changed or became inactive before context collection"
             exit 1
           fi
+          echo "Live pull-request identity is bound"
           live_context_sha256=$(jq -S -c '{title: (.title // ""), body: (.body // "")}' \
             <<< "$live_pr" | sha256sum | cut -d' ' -f1)
           if [ "$live_context_sha256" != "$EXPECTED_CONTEXT_SHA256" ]; then
             echo "::error::Pull request title or description changed before context collection"
             exit 1
           fi
+          echo "Live pull-request description is bound"
 
-          declared_count=$(jq -er '.changed_files | numbers' <<< "$live_pr")
+          if ! declared_count=$(jq -er '.changed_files | numbers' <<< "$live_pr"); then
+            echo "::error::Pull request response has no valid changed-file count"
+            exit 1
+          fi
           if [ "$declared_count" -gt 3000 ]; then
             echo "::error::Pull request exceeds GitHub's 3,000-file review API limit"
             exit 1
           fi
-          gh api "$pull_url/files" --paginate --slurp > changed_file_pages.json
-          collected_count=$(jq -er '[.[][]] | length' changed_file_pages.json)
+          if ! gh api "$pull_url/files" --paginate --slurp > changed_file_pages.json; then
+            echo "::error::Unable to collect the complete changed-file response"
+            exit 1
+          fi
+          if ! collected_count=$(jq -er '[.[][]] | length' changed_file_pages.json); then
+            echo "::error::Changed-file response is not a valid paginated JSON array"
+            exit 1
+          fi
           if [ "$collected_count" -ne "$declared_count" ]; then
             echo "::error::Changed-file manifest is incomplete"
             exit 1
           fi
+          echo "Complete changed-file response collected ($collected_count files)"
           # Include both sides of renames. This prevents a cross-task rename
           # from masquerading as a one-task change while preserving the API's
           # response-object count check above.
-          jq '[.[][] | .filename, (.previous_filename? // empty)] | unique' \
-            changed_file_pages.json > changed_files.json
-          jq -e 'all(.[]; type == "string" and (contains("\n") | not) and (contains("\r") | not) and (contains("\u0000") | not))' \
-            changed_files.json > /dev/null
+          if ! jq '[.[][] | .filename, (.previous_filename? // empty)] | unique' \
+              changed_file_pages.json > changed_files.json; then
+            echo "::error::Unable to construct the changed-file manifest"
+            exit 1
+          fi
+          # JSON type-check here; the trusted Python loader below performs the
+          # lossless NUL/CR/LF and path-safety validation. jq's string handling
+          # cannot reliably distinguish an embedded NUL in this predicate.
+          if ! jq -e 'all(.[]; type == "string")' \
+              changed_files.json > /dev/null; then
+            echo "::error::Changed-file manifest contains a non-string entry"
+            exit 1
+          fi
+          echo "Changed-file entries are structurally validated"
 
           # Reuse the trusted checker's scope parser before checking out the
           # PR or starting any paid service. It validates paths and enforces
@@ -374,7 +408,7 @@ jobs:
           from check_ai_authorship import CheckError, load_changed_files_json, touched_task_ids
 
           try:
-              touched_task_ids(load_changed_files_json(Path("changed_files.json")))
+              task_ids = touched_task_ids(load_changed_files_json(Path("changed_files.json")))
           except (CheckError, OSError) as exc:
               with open(sys.argv[1], "a", encoding="utf-8") as output:
                   output.write("review_scope_valid=false\n")
@@ -382,18 +416,28 @@ jobs:
               raise SystemExit(1)
           with open(sys.argv[1], "a", encoding="utf-8") as output:
               output.write("review_scope_valid=true\n")
+              output.write(f"task_id={task_ids[0]}\n")
           PY
           scope_rc=$?
           set -e
           if [ "$scope_rc" -ne 0 ]; then
             echo "The paid review is skipped until the PR touches exactly one valid task package"
+          else
+            echo "Single-task review scope is bound"
           fi
-          jq '{number, title, author: .user.login, head_sha: .head.sha, body: (.body // "")}' \
-            <<< "$live_pr" > pr_meta.json
-          jq -S -c '{title: (.title // ""), body: (.body // "")}' \
-            <<< "$live_pr" > review_context.json
+          if ! jq '{number, title, author: .user.login, head_sha: .head.sha, body: (.body // "")}' \
+              <<< "$live_pr" > pr_meta.json; then
+            echo "::error::Unable to construct review metadata"
+            exit 1
+          fi
+          if ! jq -S -c '{title: (.title // ""), body: (.body // "")}' \
+              <<< "$live_pr" > review_context.json; then
+            echo "::error::Unable to bind review description metadata"
+            exit 1
+          fi
           review_context_sha256=$(sha256sum review_context.json | cut -d' ' -f1)
           echo "review_context_sha256=$review_context_sha256" >> "$GITHUB_OUTPUT"
+          echo "Review metadata is collected"
 
       - name: Check out PR head (untrusted, data only)
         if: steps.pr_context.outputs.review_scope_valid == 'true'
@@ -442,6 +486,50 @@ jobs:
           cp --no-dereference "$submitted" pr-head-scripts-as-submitted/validate_repository.py
           rm -rf -- pr-head/.github/scripts
           cp -R .github/scripts pr-head/.github/scripts
+
+      - name: Build trusted review file manifest
+        if: steps.pr_context.outputs.review_scope_valid == 'true' && steps.optout.outputs.skip != 'true'
+        env:
+          TASK_ID: ${{ steps.pr_context.outputs.task_id }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          import os
+          import re
+          from pathlib import Path
+
+          task_id = os.environ["TASK_ID"]
+          if re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]*", task_id) is None:
+              raise SystemExit("invalid bound task id")
+
+          task_root = Path("pr-head/tasks") / task_id
+          if not task_root.is_dir() or task_root.is_symlink():
+              raise SystemExit("bound task directory is missing or unsafe")
+
+          review_paths = [
+              path.as_posix()
+              for path in sorted(task_root.rglob("*"))
+              if path.is_file()
+          ]
+          for required_context in (
+              Path("pr-head/registry.json"),
+              Path("pr-head-scripts-as-submitted/validate_repository.py"),
+          ):
+              if required_context.is_file():
+                  review_paths.append(required_context.as_posix())
+
+          if not review_paths or len(review_paths) > 3000:
+              raise SystemExit("review file manifest has an invalid size")
+          if any(any(char in path for char in ("\x00", "\r", "\n")) for path in review_paths):
+              raise SystemExit("review file manifest contains an invalid path")
+
+          Path("review_files.json").write_text(
+              json.dumps(review_paths, ensure_ascii=True, indent=2) + "\n",
+              encoding="utf-8",
+          )
+          print(f"Trusted review manifest contains {len(review_paths)} files")
+          PY
 
       - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         if: steps.pr_context.outputs.review_scope_valid == 'true' && steps.optout.outputs.skip != 'true'
@@ -531,17 +619,48 @@ jobs:
           test -f .agents/skills/task-review/SKILL.md
           test "$(realpath .claude/skills/task-review)" = "$(realpath .agents/skills/task-review)"
 
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        if: steps.gate.outputs.ok == 'true'
+        with:
+          node-version: "22"
+
+      - name: Prepare isolated Claude runtime
+        if: steps.gate.outputs.ok == 'true'
+        env:
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+        run: |
+          set -euo pipefail
+          command -v bwrap > /dev/null
+          cli_root="$RUNNER_TEMP/claude-cli-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          agent_home="$RUNNER_TEMP/claude-home-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          npm_cache="$RUNNER_TEMP/npm-cache-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          install -d -m 700 "$cli_root" "$npm_cache" "$agent_home"
+          npm install --prefix "$cli_root" --no-save --omit=dev --no-audit --no-fund \
+            --cache "$npm_cache" @anthropic-ai/claude-code@2.1.246
+          test -x "$cli_root/node_modules/@anthropic-ai/claude-code/bin/claude.exe"
+          export SANDBOX_CLAUDE_ROOT="$cli_root"
+          export SANDBOX_AGENT_HOME="$agent_home"
+          sandbox_version=$(.github/scripts/run_claude_in_bwrap.sh --version)
+          case "$sandbox_version" in
+            2.1.246*) ;;
+            *) echo "::error::Sandboxed Claude version mismatch"; exit 1 ;;
+          esac
+          {
+            echo "HOME=$agent_home"
+            echo "SANDBOX_CLAUDE_ROOT=$cli_root"
+            echo "SANDBOX_AGENT_HOME=$agent_home"
+          } >> "$GITHUB_ENV"
+
       - name: LLM first-pass review
         id: review_agent
         if: steps.gate.outputs.ok == 'true'
         uses: anthropics/claude-code-action@16b3b310c3d7b5279df73130324d5205aeea8eac # v1.0.205
         with:
-          # Either credential works; set exactly one as a repository secret.
-          # ANTHROPIC_API_KEY: a Console API key (sk-ant-api...), billed to the
-          # org's API account. CLAUDE_CODE_OAUTH_TOKEN: a `claude setup-token`
-          # OAuth token (sk-ant-oat...), billed to that user's subscription.
-          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          # Use exactly one credential. The OAuth token is a `claude
+          # setup-token` secret billed to that user's subscription.
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          path_to_claude_code_executable: ${{ github.workspace }}/.github/scripts/run_claude_in_bwrap.sh
+          classify_inline_comments: "false"
           # Default workflow token; remove this input if the Claude GitHub App
           # gets installed on the repository.
           github_token: ${{ secrets.GITHUB_TOKEN }}
@@ -574,16 +693,18 @@ jobs:
             --model claude-opus-5
             --max-turns 100
             --permission-mode dontAsk
+            --setting-sources user,project
             --json-schema '{"type":"object","properties":{"review_comment":{"type":"string","maxLength":16384}},"required":["review_comment"],"additionalProperties":false}'
-            --tools "Read,Grep,Glob,Skill"
-            --allowedTools "Read(/pr-head/**),Read(/pr-head-scripts-as-submitted/**),Read(/.agents/skills/task-review/**),Read(/.github/agent-review/**),Read(/CONTRIBUTING.md),Read(/taxonomy.md),Read(/changed_files.json),Read(/pr_meta.json),Read(/advisory_checks.txt),Read(/ai_detection.json),Grep,Glob,Skill(task-review)"
-            --disallowedTools "mcp__*,Read(//proc/**),Read(//etc/**),Read(//**/.env),Read(//**/.env.*),Read(~/.ssh/**),Read(~/.aws/**),Read(~/.claude/**),Read(/.git/**),Read(/pr-head/.git/**),Agent,AskUserQuestion,Bash,Edit,Write,NotebookEdit,WebFetch,WebSearch,Task"
+            --tools "Read,Skill"
+            --allowedTools "Read(/pr-head/**),Read(/pr-head-scripts-as-submitted/**),Read(/.agents/skills/task-review/**),Read(/.github/agent-review/**),Read(/CONTRIBUTING.md),Read(/taxonomy.md),Read(/changed_files.json),Read(/review_files.json),Read(/pr_meta.json),Read(/advisory_checks.txt),Read(/ai_detection.json),Skill(task-review)"
+            --disallowedTools "mcp__*,Grep,Glob,Read(//proc/**),Read(//etc/**),Read(//**/.env),Read(//**/.env.*),Read(~/.ssh/**),Read(~/.aws/**),Read(~/.claude/**),Read(/.git/**),Read(/pr-head/.git/**),Agent,AskUserQuestion,Bash,Edit,Write,NotebookEdit,WebFetch,WebSearch,Task"
 
       - name: Validate structured review output
         id: comment
         if: ${{ !cancelled() && always() }}
         env:
           STRUCTURED_OUTPUT: ${{ steps.review_agent.outputs.structured_output }}
+          FORBIDDEN_CLAUDE_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           EXPECTED_AI_STATUS: ${{ steps.gptzero.outputs.status }}
           EXPECTED_AI_REPORT_SHA256: ${{ steps.gptzero.outputs.report_sha256 }}
           EXPECTED_HEAD_SHA: ${{ needs.resolve-pr.outputs.head_sha }}
@@ -629,11 +750,11 @@ jobs:
 
   publish:
     needs: [resolve-pr, clear-current-readiness, review]
-    if: ${{ !cancelled() && needs.resolve-pr.outputs.state == 'open' && needs.resolve-pr.outputs.draft != 'true' }}
+    if: ${{ !cancelled() && always() && needs.resolve-pr.outputs.state == 'open' && needs.resolve-pr.outputs.draft != 'true' }}
     runs-on: ${{ vars.CI_RUNNER }}
     permissions:
       contents: read
-      pull-requests: read
+      pull-requests: write
       issues: write
     steps:
       - name: Download validated review comment

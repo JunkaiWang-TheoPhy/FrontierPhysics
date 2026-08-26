@@ -13,6 +13,15 @@ class ContainmentError(RuntimeError):
     """A safe validation failure for workflow logs."""
 
 
+def _is_within(path: Path, root: Path) -> bool:
+    """Return whether *path* is at or below *root* on Python 3.8+."""
+    try:
+        path.relative_to(root)
+    except ValueError:
+        return False
+    return True
+
+
 def validate_tree(root: Path) -> None:
     """Require every symlink in *root* to resolve to an existing in-tree path."""
     if root.is_symlink():
@@ -40,7 +49,7 @@ def validate_tree(root: Path) -> None:
                     raise ContainmentError(
                         f"PR data tree contains a dangling or cyclic symlink: {path.relative_to(resolved_root)}"
                     ) from exc
-                if target != resolved_root and not target.is_relative_to(resolved_root):
+                if not _is_within(target, resolved_root):
                     raise ContainmentError(
                         f"PR data symlink escapes its checkout: {path.relative_to(resolved_root)}"
                     )
