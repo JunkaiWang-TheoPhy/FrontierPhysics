@@ -66,6 +66,21 @@ jobs:
         run: python3 .github/scripts/test_check_ai_authorship.py
       - name: Test agent-review comment validator
         run: python3 .github/scripts/test_validate_agent_review_comment.py
+      - name: Validate agent-review security boundary
+        run: python3 .github/scripts/validate_agent_review_security.py
+      - name: Validate agent-review shell launcher
+        run: |
+          if LC_ALL=C grep -q $'\r' .github/scripts/run_claude_in_bwrap.sh; then
+            echo "agent-review shell launcher must use LF line endings" >&2
+            exit 1
+          fi
+          bash -n .github/scripts/run_claude_in_bwrap.sh
+      - name: Test agent-review security validator
+        run: python3 .github/scripts/test_validate_agent_review_security.py
+      - name: Test agent-review egress proxy
+        run: python3 .github/scripts/test_claude_egress_proxy.py
+      - name: Test agent-review Bubblewrap composition
+        run: python3 .github/scripts/test_run_claude_in_bwrap.py
       - name: Test PR data-tree containment validator
         run: python3 .github/scripts/test_validate_pr_data_tree.py
       - name: Validate FrontierPhysics documentation

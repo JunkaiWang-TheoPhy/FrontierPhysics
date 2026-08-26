@@ -630,8 +630,6 @@ jobs:
 
       - name: Prepare isolated Claude runtime
         if: steps.gate.outputs.ok == 'true'
-        env:
-          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
         run: |
           set -euo pipefail
           command -v bwrap > /dev/null
@@ -693,11 +691,19 @@ jobs:
             field. Do not create or edit files and do not post to GitHub.
           # Keep pr-head as an ordinary nested data directory. Passing it via
           # --add-dir would make Claude Code discover PR-controlled skills.
+          # SECURITY INVARIANT: Read and Skill are the only tool families the
+          # credential-bearing process may load. The immutable managed policy
+          # mounted by run_claude_in_bwrap.sh independently enforces the same
+          # boundary, and the repository security test gates drift in either
+          # copy. The TLS tunnel allowlist is not authorization for shell, web,
+          # or MCP tools: adding one requires a dedicated threat review and an
+          # application-layer credential/egress design, not just a list edit.
           claude_args: |
             --model claude-opus-5
             --max-turns 100
             --permission-mode dontAsk
             --setting-sources user,project
+            --strict-mcp-config
             --json-schema '{"type":"object","properties":{"review_comment":{"type":"string","maxLength":16384}},"required":["review_comment"],"additionalProperties":false}'
             --tools "Read,Skill"
             --allowedTools "Read(/pr-head/**),Read(/pr-head-scripts-as-submitted/**),Read(/.agents/skills/task-review/**),Read(/.github/agent-review/**),Read(/CONTRIBUTING.md),Read(/taxonomy.md),Read(/changed_files.json),Read(/review_files.json),Read(/pr_meta.json),Read(/advisory_checks.txt),Read(/ai_detection.json),Skill(task-review)"
@@ -715,11 +721,21 @@ jobs:
           REVIEW_PYTHON: ${{ steps.review_python.outputs.python-path }}
         run: |
           set -euo pipefail
+          forbidden_claude_token=$FORBIDDEN_CLAUDE_TOKEN
+          unset FORBIDDEN_CLAUDE_TOKEN
           publishable=false
           validation_failed=false
           review_state=invalid
           comment_sha256=""
           review_python_lib=""
+          comment_excludes_forbidden_token() {
+            if [ -z "$forbidden_claude_token" ]; then
+              return 0
+            fi
+            local decoded_comment
+            decoded_comment=$(< agent-review-comment.md)
+            [[ "$decoded_comment" != *"$forbidden_claude_token"* ]]
+          }
           if [ -n "$REVIEW_PYTHON" ]; then
             review_python_lib="$(dirname "$(dirname "$REVIEW_PYTHON")")/lib"
           fi
@@ -731,6 +747,7 @@ jobs:
              && [ -n "$STRUCTURED_OUTPUT" ] \
              && printf '%s' "$STRUCTURED_OUTPUT" \
                   | jq -er '.review_comment | select(type == "string")' > agent-review-comment.md \
+             && comment_excludes_forbidden_token \
              && LD_LIBRARY_PATH="$review_python_lib" \
                   "$REVIEW_PYTHON" .github/scripts/validate_agent_review_comment.py \
                   --comment agent-review-comment.md \
