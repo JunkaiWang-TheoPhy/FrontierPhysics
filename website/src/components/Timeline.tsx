@@ -63,12 +63,6 @@ export function Timeline({
           </li>
         ))}
       </ul>
-
-      <p className="text-sm text-muted-foreground leading-relaxed">
-        Merged, not opened — reviewing and revising a task takes days of
-        back-and-forth, so a PR opened close to a deadline is unlikely to land
-        in time.
-      </p>
     </section>
   );
 }

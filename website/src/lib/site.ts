@@ -73,7 +73,7 @@ export const timeline: {
       version: "v0.1",
       sentence: [
         "Get tasks merged by ",
-        { text: "31 August" },
+        { text: "7 September" },
         " to join the author list of ",
         { text: "ICLR" },
         " (and all future paper versions).",
@@ -91,24 +91,6 @@ export const timeline: {
     },
   ],
 };
-
-/**
- * Every task is graded in two stages, mirrored from
- * CONTRIBUTING.md#two-stages-two-graders. The author ships a grader for each:
- * a planning rubric for the first stage, the verifier for the second.
- */
-export const stages = [
-  {
-    step: "01",
-    title: "Deep research",
-    body: "The agent studies the problem and commits to a research plan. A planning rubric that ships with the task grades that plan.",
-  },
-  {
-    step: "02",
-    title: "Execution",
-    body: "The agent carries the plan out. The verifier checks that the final results are accurate.",
-  },
-] as const;
 
 /** Merged tasks needed to reach co-authorship on authoring alone. */
 export const tasksForAuthorship = credit.authorship / credit.task;

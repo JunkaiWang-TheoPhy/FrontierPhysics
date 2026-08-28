@@ -1,6 +1,6 @@
 import { Timeline } from "@/components/Timeline";
 import { Button } from "@/components/ui/button";
-import { credit, site, stages } from "@/lib/site";
+import { credit, site } from "@/lib/site";
 import {
   ArrowUpRight,
   Award,
@@ -48,30 +48,25 @@ const CRITERIA = [
   {
     title: "Weeks of effort",
     body: "At least two weeks of genuine effort, with or without an agent helping.",
-    check: "Did it really take weeks to finish?",
+    check: "Is it challenging (to SOTA agents)?",
     icon: Clock,
     accent: "text-chart-2",
     tint: "bg-chart-2/10",
   },
   {
-    title: "Verifiable",
-    body: "The result is right or wrong, and a script can tell which.",
-    check: "Can a script grade it?",
+    title: "Publishability",
+    body: "With rubrics and verifiers, simulate how a peer researcher would audit and review the research results.",
+    check: "How to simulate a peer-reviewer?",
     icon: ShieldCheck,
     accent: "text-chart-3",
     tint: "bg-chart-3/10",
   },
 ];
 
-const ELIGIBILITY = [
-  "A PhD or current PhD candidate in physics, EECS, or an adjacent field",
-  "Or extensive hands-on experience in a physics lab or an equivalent industry role",
-];
-
 const SUBMISSION = [
   {
-    title: "A PR from your fork",
-    body: "Fork this repository and open a pull request against main here. One task per PR, touching only files under tasks/<task-id>/.",
+    title: "A Pull Request with the task content",
+    body: "Open a pull request against the main branch. One task per PR, adding only files under tasks/<task-id>/.",
   },
   {
     title: "A detailed PR description",
@@ -89,7 +84,7 @@ const SUBMISSION = [
     body: "What you ran and what happened, across multiple trials rather than a single run. Example task: PR #23 in the task repository.",
     checks: [
       "The oracle passes with reward exactly 1.0",
-      "No-skill results for a state-of-the-art agent, over multiple trials",
+      "Results for a state-of-the-art agent, over multiple trials",
     ],
   },
 ];
@@ -97,7 +92,7 @@ const SUBMISSION = [
 const KEY_PARTS = [
   {
     name: "task.md",
-    body: "The task description, in two parts.",
+    body: "The task description, in three parts.",
     parts: [
       [
         "Research",
@@ -107,11 +102,34 @@ const KEY_PARTS = [
         "Implementation",
         "The concrete problem-solving request that can be verified by code scripts.",
       ],
+      [
+        "Deliverables",
+        "The final output files and results ready for peer review, including paper.pdf and other deliverables.",
+      ],
     ] as [string, string][],
   },
   {
     name: "rubric.json",
-    body: "The item-by-item list of rubrics that describe the expectations from the researchers. It mainly focuses on the research and planning parts that are not verifiable via code scripts.",
+    body: (
+      <>
+        The item-by-item list of rubrics that describe the expectations from
+        the researchers. It serves as a{" "}
+        <strong className="font-semibold text-foreground">
+          peer-reviewer
+        </strong>{" "}
+        auditing the{" "}
+        <strong className="font-semibold text-foreground">final paper</strong>,{" "}
+        <strong className="font-semibold text-foreground">
+          agent trajectories
+        </strong>
+        , etc., including research and planning parts that are not verifiable
+        via code scripts, and also{" "}
+        <strong className="font-semibold text-foreground">
+          behavior alignment
+        </strong>
+        .
+      </>
+    ),
   },
   {
     name: "verifier",
@@ -127,20 +145,16 @@ export default function Contribute() {
   return (
     <main className="max-w-3xl mx-auto px-4 md:px-8 pt-32 pb-8">
       <header className="space-y-5 mb-16">
-        <p className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
-          Contribute
-        </p>
-        <h1 className="text-4xl sm:text-5xl font-bold tracking-tight leading-[1.05]">
-          Turn research you have already done into a benchmark task
-        </h1>
         <div className="flex items-start gap-4 rounded-2xl border border-chart-2/40 bg-chart-2/5 p-6">
           <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-chart-2/15 text-chart-2">
             <Award className="h-5 w-5" aria-hidden="true" />
           </span>
           <div className="space-y-2">
-            <h2 className="font-semibold tracking-tight">
+            {/* The page's h1: the hero headline was cut, so the credit card
+                leads and its heading carries the document outline. */}
+            <h1 className="font-semibold tracking-tight">
               Earn {credit.authorship} points, become a co-author
-            </h2>
+            </h1>
             <p className="text-sm text-muted-foreground leading-relaxed">
               A merged task you authored earns{" "}
               <strong className="font-semibold text-foreground">
@@ -170,7 +184,7 @@ export default function Contribute() {
               >
                 SkillsBench
               </a>
-              , 170+ citations within 6 months of release.
+              , 200+ citations since release.
             </p>
           </div>
         </div>
@@ -193,90 +207,6 @@ export default function Contribute() {
       {/* Directly under the credit card, in the same order as the authorship
           policy in CONTRIBUTING.md: what you earn, then by when. */}
       <Timeline className="mb-20" />
-
-      <section id="get-started" className="scroll-mt-28 space-y-6 mb-20">
-        <h2 className="text-2xl font-bold tracking-tight text-center">
-          Getting started
-        </h2>
-
-        <div className="rounded-2xl border border-border bg-card divide-y divide-border">
-          <div className="p-6 flex gap-5">
-            <span className="font-mono text-sm text-muted-foreground pt-0.5 shrink-0">
-              01
-            </span>
-            <div className="space-y-1.5">
-              <h3 className="font-semibold tracking-tight">
-                Join the contributors team
-              </h3>
-              <p className="text-sm text-muted-foreground leading-relaxed">
-                Fill in the{" "}
-                <a
-                  href={site.joinForm}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-foreground underline underline-offset-4 hover:text-muted-foreground transition-colors"
-                >
-                  join form
-                </a>{" "}
-                to get access to the group chats, the shared Google Drive, and
-                the GitHub repository.
-              </p>
-            </div>
-          </div>
-          <div className="p-6 flex gap-5">
-            <span className="font-mono text-sm text-muted-foreground pt-0.5 shrink-0">
-              02
-            </span>
-            <div className="space-y-1.5">
-              <h3 className="font-semibold tracking-tight">
-                Contribute a task — two ways
-              </h3>
-              <ol className="space-y-1.5">
-                <li className="flex gap-2.5 text-sm">
-                  <span className="font-mono text-muted-foreground">1.</span>
-                  <span className="text-muted-foreground leading-relaxed">
-                    Fill in the{" "}
-                    <a
-                      href={site.joinForm}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-foreground underline underline-offset-4 hover:text-muted-foreground transition-colors"
-                    >
-                      join form
-                    </a>{" "}
-                    and co-work with reviewers in email threads.
-                  </span>
-                </li>
-                <li className="flex gap-2.5 text-sm">
-                  <span className="font-mono text-muted-foreground">2.</span>
-                  <span className="text-muted-foreground leading-relaxed">
-                    Send a PR that adds a task to the task repository,
-                    following the example PR #23 there. The repository is
-                    private — the join form in step 01 grants access.
-                  </span>
-                </li>
-              </ol>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section id="who" className="scroll-mt-28 space-y-6 mb-20">
-        <h2 className="text-2xl font-bold tracking-tight text-center">
-          Who should contribute
-        </h2>
-        <ul className="space-y-3">
-          {ELIGIBILITY.map((item) => (
-            <li key={item} className="flex gap-3 text-muted-foreground">
-              <Check
-                className="h-5 w-5 shrink-0 mt-0.5 text-chart-2"
-                aria-hidden="true"
-              />
-              <span className="leading-relaxed">{item}</span>
-            </li>
-          ))}
-        </ul>
-      </section>
 
       <section id="ideal-task" className="scroll-mt-28 space-y-6 mb-20">
         <h2 className="text-2xl font-bold tracking-tight text-center">
@@ -313,35 +243,6 @@ export default function Contribute() {
         </div>
       </section>
 
-      <section id="two-stages" className="scroll-mt-28 space-y-6 mb-20">
-        <div className="space-y-3">
-          <h2 className="text-2xl font-bold tracking-tight text-center">
-            Two stages, two graders
-          </h2>
-          <p className="text-muted-foreground leading-relaxed">
-            Every task is graded in two stages, and you write the grader for
-            each.
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-          {stages.map((stage) => (
-            <div
-              key={stage.step}
-              className="rounded-2xl border border-border bg-card p-6 space-y-2"
-            >
-              <span className="font-mono text-sm text-muted-foreground">
-                {stage.step}
-              </span>
-              <h3 className="font-semibold tracking-tight">{stage.title}</h3>
-              <p className="text-sm text-muted-foreground leading-relaxed">
-                {stage.body}
-              </p>
-            </div>
-          ))}
-        </div>
-      </section>
-
       <section id="key-parts" className="scroll-mt-28 space-y-6 mb-20">
         <h2 className="text-2xl font-bold tracking-tight text-center">
           Key parts of a task
@@ -370,8 +271,8 @@ export default function Contribute() {
                         <span className="text-muted-foreground leading-relaxed">
                           <span className="font-medium text-foreground">
                             {label}
-                          </span>{" "}
-                          — {detail}
+                          </span>
+                          : {detail}
                         </span>
                       </li>
                     ))}
@@ -384,17 +285,9 @@ export default function Contribute() {
       </section>
 
       <section id="submission" className="scroll-mt-28 space-y-6 mb-20">
-        <div className="space-y-3">
-          <h2 className="text-2xl font-bold tracking-tight text-center">
-            The final submission
-          </h2>
-          <p className="text-muted-foreground leading-relaxed">
-            Three things. Open it as a draft long before it is finished —
-            reviewing and revising a task takes days of back-and-forth, and a
-            draft is the cheapest way to find out early that an idea will not
-            clear the bar.
-          </p>
-        </div>
+        <h2 className="text-2xl font-bold tracking-tight text-center">
+          The final submission
+        </h2>
 
         <ol className="space-y-5">
           {SUBMISSION.map((item, index) => (
