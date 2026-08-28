@@ -47,7 +47,7 @@ sandbox:
   os: linux
   cpus: 4
   memory_mb: 10240
-  storage_mb: 20480
+  storage_mb: 10240
   gpus: 0
 ---
 
@@ -78,4 +78,3 @@ Start running the experiment. This multiplexed ion-chain serves as a single phot
 
 - `/root/1.csv` (the single-ion move, 0 to 10 us), `/root/2.csv` (the ideal 9-ion sequence, 0 to 88 us), and `/root/4.csv` (the compensated control to program, same span and grid as `2.csv`): a `time_us,position_um` header plus exactly 10,000 uniformly spaced samples including both endpoints, written with at least 4 decimal places; the second column is the trap-center (for `4.csv`: control) position along the axial direction.
 - `/root/3.csv`: a `move_us,quanta` header plus 19 rows for move durations 2, 3, ..., 20 us, at least 4 decimal places.
-
