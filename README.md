@@ -85,7 +85,7 @@ A merged task earns **6 points**, a referral **2 points** (once the referred con
 
 We will submit to **ICLR** first and then submit to *Nature* after further polish.
 
-- **v0.1** — Get tasks merged by **31 August** to join the author list of **ICLR** (and all future paper versions).
+- **v0.1** — Get tasks merged by **7 September** to join the author list of **ICLR** (and all future paper versions).
 - **v1.0** — Get tasks merged by **31 December** to join the author list of the draft submitted to *Nature*.
 
 Both are deadlines for a task being **merged**, not opened — review and revision take days of back-and-forth, so a PR opened close to a deadline is unlikely to land in time. Open a draft PR early: see the [timeline](CONTRIBUTING.md#timeline).

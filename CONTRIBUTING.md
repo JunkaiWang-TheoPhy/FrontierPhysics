@@ -58,7 +58,7 @@ Points are awarded on merge, not on submission: a review or a referral earns its
 # Timeline
 We will submit to **ICLR** first and then submit to **Nature** later.
 
-- **v0.1** — Get tasks merged by **31 August** to join the author list of
+- **v0.1** — Get tasks merged by **7 September** to join the author list of
   **ICLR** (and all future paper versions).
 - **v1.0** — Get tasks merged by **31 December** to join the author list of the draft submitted to **Nature**
 
@@ -72,22 +72,26 @@ Three things:
 
 1. **Your own work.** Real research you personally carried out, not a problem invented for the benchmark.
 2. **Two weeks or more.** It took you at least two weeks of genuine effort, with or without an LLM agent helping.
-3. **Verifiable.** The result is right or wrong, and a script can tell which.
+3. **Publishability.** With rubrics and verifiers, simulate how a peer researcher would audit and review the research results.
 
 A task that misses any one of these will not merge.
 
-# Two stages for each task
+# Two parts for each task
 When doing research, a typical loop is: from **research & planning** -> to **implementation & experiment** -> to **evaluation & feedback**. While **evaluation & feedback** from real world experiment may be not feasible in experimental cases, we need to include **research & planning** and **implementation & experiment** as 2 "must-have" parts in each task.
 
-Every task is evaluated in two stages, and you write the grader for each:
+You author the graders that cover both parts together — the rubrics and the verifier:
 
-1. **Deep research.** The agent studies the problem and commits to a research plan. A planning rubric you author grades that plan — the physics that must be modelled, the approximations that are defensible, the checks that catch a wrong turn early.
-2. **Execution.** The agent carries the plan out. The verifier checks that the final results are accurate.
+1. **Deep research.** The agent studies the problem and commits to a research plan — the physics that must be modelled, the approximations that are defensible, the checks that catch a wrong turn early.
+2. **Execution.** The agent carries the plan out and produces the final deliverables.
 
 The rubric ships in every task package at `verifier/rubric.json`, alongside the
-verifier. Tasks that emphasize execution over deep research are still welcome
-when they are authentic and difficult, but they use the same required rubric
-schema so the scientific work can be evaluated consistently.
+verifier. Together they simulate how a peer researcher would audit and review
+the research results: deterministic outcomes are checked by the verifier
+scripts, and everything else — the research and planning, the final paper, the
+agent's trajectory, behavior alignment — by the rubric. Tasks that emphasize
+execution over deep research are still welcome when they are authentic and
+difficult, but they use the same required rubric schema so the scientific work
+can be evaluated consistently.
 
 # How to contribute
 1. **Ideate**: Pick a project that meets all three. Bring it to group chat or confirm with a maintainer before you build. See the [task ideation guide](docs/task-ideation.md) for the kinds of research subproblems that make good tasks.
@@ -115,7 +119,11 @@ tasks/<task-id>/
 ```
 ## task.md
 Usually the first file that you write. `task.md` starts with YAML frontmatter, followed by the human-written prompt body.
-The frontmatter carries metadata, timeouts, and resource requirements. The body is the instructions (prompt) for the agents. You can write the prompts for both the deep research and execution sections as two parts in one `task.md`.
+The frontmatter carries metadata, timeouts, and resource requirements. The body is the instructions (prompt) for the agents, describing the task in three parts:
+
+1. **Research**: Reviewing literature and making plans. The plan and thinking process are evaluated based on rubrics written by the contributor.
+2. **Implementation**: The concrete problem-solving request that can be verified by code scripts.
+3. **Deliverables**: The final output files and results ready for peer review, including `paper.pdf` and other deliverables.
 
 Here are some rules for writing the prompt:
 - Write by hand in clear, imperative prose.
@@ -125,7 +133,7 @@ Here are some rules for writing the prompt:
 - Anchor a date when the correct answer depends on time-sensitive data.
 
 ## rubric.json
-The item-by-item list of rubrics that describe the expectations from the researchers. It mainly focuses on the deep research part that is not verifiable via code scripts. It can include the key papers that the agent should find when doing literature review, key caveats or plans for doing an experiment that the agent should realize, etc.
+The item-by-item list of rubrics that describe the expectations from the researchers. It serves as a peer-reviewer auditing the final paper, agent trajectories, etc., including research and planning parts that are not verifiable via code scripts, and also behavior alignment. It can include the key papers that the agent should find when doing literature review, key caveats or plans for doing an experiment that the agent should realize, etc.
 
 Since benchflow 0.7.5, every criterion in `rubric.json` follows a fixed schema: `{name, blocker: 0|1, weight, description, guidance}` — blocker criteria gate the result, weighted criteria score it. See the canonical example [tasks/multiplexing-ion-chain-qnet/verifier/rubric.json](tasks/multiplexing-ion-chain-qnet/verifier/rubric.json) ([PR #109](https://github.com/benchflow-ai/FrontierPhysics/pull/109)).
 
@@ -172,7 +180,7 @@ Every PR is evaluated against the [task-review skill](.agents/skills/task-review
 
 - **Authenticity**: real scenario, real data where possible, human-authored task prompt, rubric prose, and oracle. The automated first pass verifies the prompt and rubric prose with the GPTZero gate described below.
 - **Deliverables**: only the files you would submit for peer review or proudly present (`paper.pdf`, `report.pptx`, result data) — no process files like `PLAN.md`.
-- **Verification**: deterministic, outcome-based, anti-cheat aware, covering both stages — the planning rubric and the execution verifier.
+- **Verification**: deterministic, outcome-based, anti-cheat aware, covering both graders — the rubric and the verifier.
 - **Instructions**: concise, fair, no skill hints.
 - **Environment**: reproducible Docker image, pinned deps, no bundled skills.
 - **Complexity**: clears every minimum in [A detailed PR description](#2-a-detailed-pr-description) — two weeks, 40 working hours, 10 hours to reproduce — and agents without skills are likely to fail it.
@@ -189,7 +197,7 @@ Fork this repository, push your task to a branch on your fork, and open a pull r
 
 The description is part of the submission, not a formality — it is the evidence a reviewer uses to judge provenance and difficulty. Explain the history of the task: where this work came from and what it cost you.
 
-The PR template pre-fills every required section, modelled on the reference submission [PR #23](https://github.com/benchflow-ai/FrontierPhysics/pull/23) — including a **Form-formatted task information** section that carries the same answers as the task-contribution Google form, so the two contribution routes stay interchangeable ([worked example](https://github.com/benchflow-ai/FrontierPhysics/pull/23#issuecomment-5227575650)). CI verifies that task PRs keep every required section: check every checklist box, or leave a box unchecked and add a paragraph starting with "Deliberately unchecked" explaining why. Non-task PRs are not checked.
+The PR template pre-fills every required section, modelled on the reference submission [PR #23](https://github.com/benchflow-ai/FrontierPhysics/pull/23) — including a **Form-formatted task information** section that gathers the task's key facts in one place ([worked example](https://github.com/benchflow-ai/FrontierPhysics/pull/23#issuecomment-5227575650)). CI verifies that task PRs keep every required section: check every checklist box, or leave a box unchecked and add a paragraph starting with "Deliberately unchecked" explaining why. Non-task PRs are not checked.
 
 Report these three in a table. Each carries a minimum; a submission below any of them will not merge.
 
