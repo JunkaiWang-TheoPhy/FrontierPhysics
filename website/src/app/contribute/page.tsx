@@ -212,9 +212,6 @@ export default function Contribute() {
         <h2 className="text-2xl font-bold tracking-tight text-center">
           What makes an ideal task
         </h2>
-        <p className="text-muted-foreground leading-relaxed">
-          All three. A task that misses any one will not merge.
-        </p>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
           {CRITERIA.map((item) => (
