@@ -185,6 +185,33 @@ Every PR is evaluated against the [task-review skill](.agents/skills/task-review
 - **Environment**: reproducible Docker image, pinned deps, no bundled skills.
 - **Complexity**: clears every minimum in [A detailed PR description](#2-a-detailed-pr-description) — two weeks, 40 working hours, 10 hours to reproduce — and agents without skills are likely to fail it.
 
+## Expertise verification label
+
+Maintainers may apply the `expertise-verified` label when the contributor's
+direct expertise or first-hand project provenance has been verified through at
+least one of the following:
+
+- the task is derived from a paper authored by the contributor;
+- the contributor has a PhD in the same direct research subdomain as the task;
+- the contributor has another publication in that direct subdomain;
+- the task is derived from a clearly documented course or internship project
+  personally completed by the contributor; or
+- a reviewer has explicitly verified the contributor's relevant expertise or
+  first-hand involvement in the source project.
+
+A course or internship project should identify the institution, course,
+research group, or internship; the project dates; the contributor's personal
+role; the supervisor or collaboration context when applicable; and how the
+original project maps to the submitted task. Reviewer verification should be
+recorded in the PR conversation when possible, without requiring private or
+sensitive details to be disclosed.
+
+General physics training, authorship in an unrelated field, citing another
+researcher's paper, or using a public dataset does not by itself qualify. The
+label verifies contributor expertise or project provenance only; it does not
+mean that the task has passed scientific, environment, verifier, acceptance,
+or merge review.
+
 # The final submission
 
 Every task submission consists of three things.
