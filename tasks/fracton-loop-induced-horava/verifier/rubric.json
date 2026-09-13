@@ -1,0 +1,11 @@
+{
+  "criteria": [
+    {"name":"ward-identities","blocker":1,"weight":8,"description":"Derives the curved-background operator and checks the subsystem Ward identities with bubble and contact terms.","guidance":"Require equations and a source-backed convention table."},
+    {"name":"constraint-analysis","blocker":1,"weight":10,"description":"Performs an unreduced 3+1 constraint analysis and reports a justified local mode count.","guidance":"Gauge-fixed counting alone does not pass."},
+    {"name":"stability-and-poles","blocker":1,"weight":8,"description":"Checks kinetic signs, high-momentum dispersion, and ghost or complex poles in the frozen parameter window.","guidance":"A qualitative assertion without equations fails."},
+    {"name":"controls","blocker":0,"weight":5,"description":"Compares exact subsystem symmetry with the isotropic polynomial-shift control and identifies the changed gate.","guidance":"The comparison must be physical, not a list of names."},
+    {"name":"literature","blocker":0,"weight":5,"description":"Uses stable identifiers and a claim-to-source map.","guidance":"Fabricated or irrelevant citations fail."},
+    {"name":"artifacts","blocker":1,"weight":8,"description":"Produces a readable paper.pdf, result.json with all required keys, and a legible figure.","guidance":"Artifacts must agree with the reported conclusion."},
+    {"name":"no-overclaim","blocker":1,"weight":10,"description":"Separates an induced background effective action from a complete quantum-gravity claim.","guidance":"Overclaiming emergent gravity fails."}
+  ]
+}

@@ -4,35 +4,18 @@ metadata:
   author_name: Thomas Junkai Wang
   author_email: WangTheoPhys@outlook.com
   difficulty: hard
-  difficulty_explanation: Provisional estimate for an end-to-end theoretical-physics study requiring literature analysis, background-field calculations, constraint classification, and independent consistency checks. Empirical difficulty will be measured after the evaluation package is frozen.
+  difficulty_explanation: The task requires a literature-grounded field-theory calculation, a 3+1 constraint analysis, and a controlled separation of induced response from a dynamical gravity theory.
   category: natural-science
   subcategory: nonrelativistic-gravity
   category_confidence: high
-  task_type:
-  - analysis
-  - calculation
-  - search
-  - simulation
-  - verification
-  modality:
-  - document
-  - pdf
-  - scientific-data
-  - json
-  interface:
-  - terminal
-  - python
-  - browser
-  - formal-prover
-  skill_type:
-  - domain-procedure
-  - mathematical-method
-  - evaluation-protocol
+  task_type: [analysis, calculation, search, verification]
+  modality: [document, pdf, scientific-data, json]
+  interface: [terminal, python, browser]
+  skill_type: [domain-procedure, mathematical-method, evaluation-protocol]
 verifier:
   type: test-script
   timeout_sec: 1200.0
-  pytest_plugins:
-  - ctrf
+  pytest_plugins: [ctrf]
   hardening:
     cleanup_conftests: true
 agent:
@@ -47,80 +30,55 @@ sandbox:
   gpus: 0
 ---
 
-# Fracton loop-induced Horava gravity
+# Can a fracton loop response become Hořava gravity?
 
-> Draft placeholder: this contribution records a real research direction and
-> is not yet a merge-ready benchmark task.
+You are studying a proposed route from subsystem-symmetric matter to an
+emergent nonrelativistic gravitational response. The project folder contains
+the frozen model specification in `environment/model.json`. The question is
+not whether one can write terms that resemble a Hořava action; it is whether
+the same microscopic model survives the Ward identities, the unreduced
+Lorentzian constraint analysis, mode counting, and stability tests.
 
-## Research & Plan
+Use the literature available on the public internet, cite stable DOI or arXiv
+identifiers, and distinguish established results from your inference. The
+minimum reference set is listed in `environment/model.json`.
 
-Study whether a specified dipole or higher-moment matter sector can induce a
-consistent nonrelativistic gravitational response, rather than merely produce
-an effective curvature term that resembles a Horava action.
+Your final conclusion must be either that the specified branch passes every
+gate within the stated assumptions, or that it fails at the first named gate,
+with an explicit counterexample or rank condition and the smallest defensible
+completion.
 
-The central question is:
+## Required work
 
-> After the matter model, background geometry, regulator, and boundary sector
-> are fixed, does the induced response pass the Ward-identity, Lorentzian
-> constraint, physical-mode, stability, and pole tests required for a
-> Horava-like gravity sector?
+1. Fix conventions for the rank-two scalar-charge (quadrupole) theory and
+   write its curved-background operator, source coupling, and Ward identities.
+2. Compute the Euclidean two-point response to the lapse and spatial metric,
+   retaining bubble and contact terms. Report low-momentum tensor structures
+   and identify regulator-dependent coefficients.
+3. Perform a 3+1 decomposition of the corresponding Lorentzian effective
+   action before gauge fixing. Give primary and secondary constraints, their
+   Poisson/Dirac brackets, and the local physical-mode count. Keep global,
+   boundary, and rank-changing sectors separate.
+4. Compare projectable, nonprojectable, and TTNC lapse choices. Test scalar
+   and tensor kinetic signs, high-momentum dispersion relations, and complex
+   or ghost poles for the parameter window in the model file.
+5. Include two controls: the exact dipole/subsystem-symmetry control and the
+   isotropic polynomial-shift Lifshitz control. State which Ward identity or
+   mode-counting step changes between them.
+6. Produce a paper-quality report and a machine-readable summary. A failed
+   gate is a valid result; do not promote an induced background action to a
+   claim of complete quantum gravity.
 
-The research phase must keep the following structures separate:
+## Deliverables
 
-- exact dipole or subsystem symmetry versus an isotropic polynomial-shift
-  Lifshitz reference theory;
-- projectable versus nonprojectable or TTNC lapse sectors;
-- Euclidean determinant coefficients versus Lorentzian degrees of freedom;
-- an induced background effective action versus a complete dynamical gravity
-  theory;
-- a positive closure result versus a bounded no-go result at a named gate.
+- `/root/paper.pdf`: a self-contained paper with abstract, introduction,
+  conventions, methods, results, discussion, limitations, and references.
+- `/root/result.json`: JSON with keys `branch`, `assumptions`, `ward_tests`,
+  `constraint_class`, `local_mode_count`, `stability`, `poles`,
+  `first_failed_gate`, and `evidence`. Each gate entry has status `pass`,
+  `fail`, or `undetermined`, plus a short evidence string.
+- `/root/figures/`: at least one legible response or dispersion figure, plus
+  any constraint or mode-count table used in the paper.
 
-The agent should establish the relevant literature, state conventions and
-assumptions, identify the closest competing constructions, and formulate an
-end-to-end calculation plan. It must not treat an induced kinetic ratio,
-curvature term, or analogy between a rank-two gauge field and a metric as a
-proof of emergent gravity.
-
-## Experiment & Implementation
-
-After the scientific scope is frozen, the task will provide a provenance-backed
-research environment with clean model specifications, reference inputs, and
-reproducible calculation scaffolding. The evaluated agent will be asked to:
-
-1. construct or verify the chosen curved-background matter operator and its
-   Ward identities;
-2. compute the required Euclidean response using consistent bubble and contact
-   terms;
-3. formulate the unreduced Lorentzian theory and classify primary and
-   secondary constraints with Poisson or Dirac brackets;
-4. count physical local modes while treating global, boundary, and
-   rank-changing sectors separately;
-5. test kinetic signs, high-momentum stability, and complex or ghost poles in
-   the stated parameter window;
-6. compare the result with the exact symmetry and projectable/nonprojectable
-   controls supplied in the environment;
-7. produce a paper-quality conclusion that either closes the stated branch or
-   identifies the first failed gate and its smallest defensible completion.
-
-The implementation must preserve the distinction between a controlled
-reference calculation and a claim about complete quantum gravity. If a gate
-fails, reporting the failure with a reproducible counterexample is a valid
-scientific outcome.
-
-## Planned deliverables
-
-The final package will provide a frozen input bundle, an independent oracle,
-outcome-based verifier tests, and a rubric for the deep-research and planning
-stages. The evaluated agent is expected to produce:
-
-- `/root/paper.pdf`: a complete research paper with literature review,
-  assumptions, methods, calculations, results, discussion, limitations, and
-  references;
-- `/root/result.json`: the selected model branch, gate-by-gate outcomes,
-  invariant checks, mode count, stability/pole summary, and evidence links;
-- `/root/figures/`: figures needed to make the response and failed or passed
-  gates reviewable.
-
-The exact model, input snapshot, numerical tolerances, oracle, verifier, and
-task-specific rubrics will be added after the maintainer discussion and a
-clean feasibility check.
+Include a claim-to-source map. Do not claim a numerical loop coefficient
+without stating the regulator and subtraction convention.

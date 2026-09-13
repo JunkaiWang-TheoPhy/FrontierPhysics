@@ -1,0 +1,15 @@
+{
+  "model": "rank-two scalar-charge matter coupled to a weak ADM background",
+  "spacetime": {"dimensions": "3+1", "z": 3, "signature": "(-,+,+,+)"},
+  "matter_action": "S = integral dt d^3x [ (D_t phi)^2/2 - kappa (partial_i partial_j phi)^2/2 - m^2 phi^2/2 ]",
+  "background": "N=1+n, N_i=0, g_ij=delta_ij+h_ij; retain terms through quadratic order in n,h",
+  "parameter_window": {"kappa": [0.5, 2.0], "m": [0.1, 1.0], "cutoff": [10.0, 50.0]},
+  "controls": ["exact dipole/subsystem symmetry", "isotropic polynomial-shift Lifshitz"],
+  "minimum_references": [
+    "https://arxiv.org/abs/1802.09511",
+    "https://arxiv.org/abs/2003.11532",
+    "https://arxiv.org/abs/2308.08891",
+    "https://arxiv.org/abs/1010.3271",
+    "https://doi.org/10.1038/s41534-022-00579-3"
+  ]
+}
